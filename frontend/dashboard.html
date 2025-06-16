@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="dash.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+    }
+
+    nav {
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      height: 100vh;
+      padding: 20px 15px;
+      box-sizing: border-box;
+    }
+
+    nav h2 {
+      margin-top: 0;
+      font-size: 22px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    nav a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      margin: 12px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    nav a:hover {
+      background-color: #34495e;
+    }
+
+    main {
+      flex-grow: 1;
+      padding: 20px;
+      background-color: #f4f6f8;
+      overflow-y: auto;
+      height: 100vh;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    form {
+      margin-bottom: 25px;
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin: 8px 0;
+    }
+
+    input, select, button {
+      padding: 8px;
+      margin-top: 4px;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+
+    canvas {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h2>Admin Panel</h2>
+    <a href="#" onclick="showSection('dashboard')">Dashboard</a>
+    <a href="#" onclick="showSection('addUser')">Add User</a>
+    <a href="#" onclick="showSection('deleteUser')">Delete User</a>
+    <a href="#" onclick="showSection('changeRole')">Change Role</a>
+    <a href="#" onclick="logout()">Logout</a>
+  </nav>
+
+  <main>
+    <h2>Admin Dashboard</h2>
+    <p>Logged in as: <span id="username"></span> (<span id="role"></span>)</p>
+
+    <section id="dashboard" class="section">
+      <h3>System Metrics</h3>
+      <canvas id="chart" width="600" height="300"></canvas>
+    </section>
+
+    <section id="addUser" class="section">
+      <h3>Add New User</h3>
+      <form id="addUserForm">
+        <label>Username: <input name="username" required></label>
+        <label>Password: <input type="password" name="password" required></label>
+        <label>Role:
+          <select name="role" required>
+            <option value="user">User</option>
+            <option value="manager">Manager</option>
+          </select>
+        </label>
+        <label>Full Name (CN): <input name="cn" required></label>
+        <label>Surname (SN): <input name="sn" required></label>
+        <button type="submit">Add User</button>
+      </form>
+    </section>
+
+    <section id="deleteUser" class="section">
+      <h3>Delete User</h3>
+      <form id="deleteUserForm">
+        <label>Username: <input name="username" required></label>
+        <button type="submit">Delete</button>
+      </form>
+    </section>
+
+    <section id="changeRole" class="section">
+      <h3>Change User Role</h3>
+      <form id="changeRoleForm">
+        <label>Username: <input name="username" required></label>
+        <label>New Role:
+          <select name="role" required>
+            <option value="user">User</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <button type="submit">Change Role</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    async function logout() {
+      await fetch('/logout');
+      location.href = '/login.html';
+    }
+
+    async function getUser() {
+      const res = await fetch('/user');
+      const user = await res.json();
+      document.getElementById('username').innerText = user.username;
+      document.getElementById('role').innerText = user.role;
+    }
+
+    document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new URLSearchParams(new FormData(e.target));
+      const res = await fetch('/admin/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      });
+      alert(await res.text());
+      e.target.reset();
+    });
+
+    document.getElementById('deleteUserForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new URLSearchParams(new FormData(e.target));
+      const res = await fetch('/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      });
+      alert(await res.text());
+      e.target.reset();
+    });
+
+    document.getElementById('changeRoleForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new URLSearchParams(new FormData(e.target));
+      const res = await fetch('/admin/change-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      });
+      alert(await res.text());
+      e.target.reset();
+    });
+
+    async function loadMetrics() {
+      const res = await fetch('/dashboard-metrics');
+      const data = await res.json();
+      const ctx = document.getElementById('chart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Projects', 'Budgets', 'AFEs', 'Invoices', 'Profit'],
+          datasets: [{
+            label: 'System Overview',
+            data: [data.projects, data.budgets, data.afes, data.invoices, data.profit],
+            backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#e91e63', '#9c27b0']
+          }]
+        }
+      });
+    }
+
+    getUser();
+    loadMetrics();
+    showSection('dashboard');
+  </script>
+</body>
+</html>

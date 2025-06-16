@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manager Dashboard</title>
+  <link rel="stylesheet" href="dash.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+    }
+
+    nav {
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      height: 100vh;
+      padding: 20px 15px;
+      box-sizing: border-box;
+    }
+
+    nav h2 {
+      margin-top: 0;
+      font-size: 22px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    nav a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      margin: 12px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    nav a:hover {
+      background-color: #34495e;
+    }
+
+    main {
+      flex-grow: 1;
+      padding: 20px;
+      background-color: #f4f6f8;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .section {
+      display: none;
+      margin-top: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      background-color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h2>Manager Panel</h2>
+    <a href="#" onclick="showSection('projects')">Project Requests</a>
+    <a href="#" onclick="showSection('budgets')">Budget Requests</a>
+    <a href="#" onclick="showSection('afes')">AFE Requests</a>
+    <a href="#" onclick="showSection('invoices')">Invoice Requests</a>
+    <a href="/logout">Logout</a>
+  </nav>
+
+  <main>
+    <h2>Welcome to BERM System - Manager</h2>
+
+    <section id="projects" class="section">
+      <h3>Pending Project Approvals</h3>
+      <div id="pendingProjects"></div>
+    </section>
+
+    <section id="budgets" class="section">
+      <h3>Pending Budget Approvals</h3>
+      <div id="pendingBudgets"></div>
+    </section>
+
+    <section id="afes" class="section">
+      <h3>Pending AFE Approvals</h3>
+      <div id="pendingAFEs"></div>
+    </section>
+
+    <section id="invoices" class="section">
+      <h3>Pending Invoices</h3>
+      <div id="pendingInvoices"></div>
+    </section>
+  </main>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    async function approveItem(url, id, status) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      });
+      const msg = await res.text();
+      alert(msg);
+      loadData(); // refresh list
+    }
+
+    async function renderList(endpoint, targetId, updateUrl) {
+      const res = await fetch(endpoint);
+      const items = await res.json();
+      const target = document.getElementById(targetId);
+      target.innerHTML = '';
+
+      if (items.length === 0) {
+        target.innerHTML = '<p>No pending requests.</p>';
+        return;
+      }
+
+      const excludeKeys = ['approved_by', 'approved_at'];
+      const columns = Object.keys(items[0]).filter(key => !excludeKeys.includes(key));
+
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            ${columns.map(key => `<th>${key}</th>`).join('')}
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => `
+            <tr>
+              ${columns.map(key => `<td>${item[key] ?? ''}</td>`).join('')}
+              <td>
+                <button onclick="approveItem('${updateUrl}', ${item.id}, 'approved')">✅</button>
+                <button onclick="approveItem('${updateUrl}', ${item.id}, 'declined')">❌</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      `;
+      target.appendChild(table);
+    }
+
+    function loadData() {
+      renderList('/pending-projects', 'pendingProjects', '/update-project');
+      renderList('/pending-budgets', 'pendingBudgets', '/update-budget');
+      renderList('/pending-afes', 'pendingAFEs', '/update-afe');
+      renderList('/pending-invoices', 'pendingInvoices', '/update-invoice');
+    }
+
+    loadData();
+    showSection('projects');
+  </script>
+</body>
+</html>

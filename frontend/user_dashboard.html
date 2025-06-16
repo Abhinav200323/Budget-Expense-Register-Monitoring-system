@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="dash.css">
+  <style>
+    body {
+      display: flex;
+      font-family: Arial, sans-serif;
+    }
+    .sidebar {
+      width: 200px;
+      background: #157b15;
+      color: rgb(0, 0, 0);
+      padding-top: 20px;
+      height: 100vh;
+      position: fixed;
+    }
+    .sidebar button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: rgb(255, 253, 253);
+      text-align: left;
+      cursor: pointer;
+    }
+    .sidebar button:hover {
+      background-color: #555;
+    }
+    .content {
+      margin-left: 200px;
+      padding: 20px;
+      width: 100%;
+    }
+    .section {
+      display: none;
+    }
+  </style>
+</head>
+<body onload="getUser(); loadApprovedBudgets();">
+
+  <div class="sidebar">
+    <p style="padding: 0 12px;">Welcome, <span id="username"></span> (<span id="role"></span>)</p>
+    <button onclick="showSection('projectSection')">Projects</button>
+    <button onclick="showSection('taskSection')">Tasks</button>
+    <button onclick="showSection('workElementSection')">Work Elements</button>
+    <button onclick="showSection('budgetSection')">Budgets</button>
+    <button onclick="showSection('afeSection')">AFEs</button>
+    <button onclick="showSection('invoiceSection')">Invoices</button>
+    <button onclick="showSection('productionSection')">Production</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="content">
+
+    <!-- Project Section -->
+    <div id="projectSection" class="section">
+      <h2>Submit Project</h2>
+      <form id="projectForm">
+        <label>Project Name: <input name="name" required></label>
+        <label>Description: <input name="description" required></label>
+        <button type="submit">Submit</button>
+      </form>
+
+      <h3>Your Projects</h3>
+      <table border="1" id="projectTable">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Status</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Task Section -->
+    <div id="taskSection" class="section">
+      <h2>Add Task</h2>
+      <form id="taskForm">
+        <label>Select Approved Project:
+          <select name="project_id" id="taskProjectSelect" required></select>
+        </label>
+        <label>Task Name: <input name="name" required></label>
+        <label>Description: <input name="description" required></label>
+        <button type="submit">Add Task</button>
+      </form>
+    </div>
+
+    <!-- Work Element Section -->
+    <div id="workElementSection" class="section">
+      <h2>Add Work Element</h2>
+      <form id="workElementForm">
+        <label>Select Approved Project:
+          <select id="weProjectSelect" onchange="loadApprovedTasks(this.value, 'weTaskSelect')"></select>
+        </label>
+        <label>Select Approved Task:
+          <select name="task_id" id="weTaskSelect" required></select>
+        </label>
+        <label>Name: <input name="name" required></label>
+        <label>Description: <input name="description" required></label>
+        <button type="submit">Add Work Element</button>
+      </form>
+    </div>
+
+    <!-- Budget Section -->
+    <div id="budgetSection" class="section">
+      <h2>Submit Budget</h2>
+      <form id="budgetForm">
+<label>Select Approved Project:
+  <select id="budgetProjectSelect" onchange="loadApprovedTasks(this.value, 'budgetTaskSelect')"></select>
+</label>
+<label>Select Task:
+  <select id="budgetTaskSelect" onchange="loadApprovedWorkElements(this.value, 'budgetWorkElementSelect')"></select>
+</label>
+<label>Select Work Element:
+  <select name="work_element_id" id="budgetWorkElementSelect" required></select>
+</label>
+        </label>
+        <label>Amount: <input name="amount" required></label>
+        <label>Description: <input name="description" required></label>
+        <button type="submit">Submit Budget</button>
+      </form>
+    </div>
+
+    <!-- AFE Section -->
+    <div id="afeSection" class="section">
+      <h2>Submit AFE</h2>
+      <div id="afeSummary" style="margin-bottom: 15px;">
+  <strong>AFE Budget:</strong> $<span id="afeAmountView">-</span><br>
+  <strong>Total Invoiced:</strong> $<span id="afeInvoiced">-</span><br>
+  <strong>Remaining Balance:</strong> $<span id="afeBalance">-</span>
+</div>
+
+      <form id="afeForm">
+        
+<<h3>AFE Details</h3>
+
+<label>Activity Description:
+  <input type="text" name="activity_description" required>
+</label>
+
+<label>Unit:
+  <input type="text" name="unit" required>
+</label>
+
+<label>Quantity:
+  <input type="number" name="quantity" id="afeQuantity" required step="0.01">
+</label>
+
+<label>Unit Price (USD):
+  <input type="number" name="unit_price" id="afeUnitPrice" required step="0.01">
+</label>
+
+<label>Cost Estimate (USD):
+  <input type="number" name="amount" id="afeCostEstimate" readonly required>
+</label>
+
+<!-- Replaces budget dropdown -->
+<input type="hidden" name="budget_id" id="afeBudgetId">
+<label>Approved Budget Amount:
+  <input type="text" id="afeBudgetAmount" disabled>
+</label>
+
+
+
+        </label>
+        <label>AFE Title: <input name="afe_title" required></label>
+        <label>Description: <input name="description" required></label>
+        <button type="submit">Submit AFE</button>
+      </form>
+    </div>
+
+    <!-- Invoice Section -->
+    <div id="invoiceSection" class="section">
+      <h2>Submit Invoice</h2>
+   <label>Invoice Number:
+  <input type="text" name="invoice_number" required>
+</label>
+
+<label>Vendor:
+  <input type="text" name="vendor" required>
+</label>
+
+<label>User Department:
+  <input type="text" name="user_department" required>
+</label>
+
+<label>Contract Number:
+  <input type="text" name="contract_number" required>
+</label>
+
+    <!-- Production Section -->
+    <div id="productionSection" class="section">
+      <h2>Enter Production Data</h2>
+      <form id="productionForm">
+<label>Select Approved Project:
+  <select name="project_id" id="productionProjectSelect" required></select>
+</label>
+        <label>Price/Barrel: <input name="price_per_barrel" required></label>
+        <label>Number of Barrels: <input name="number_of_barrels" required></label>
+        <label>Cost: <input name="cost" required></label>
+        <label>Date: <input type="date" name="production_date" required></label>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+
+  </div>
+
+<script>
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+  }
+
+  async function logout() {
+    await fetch('/logout');
+    location.href = '/login.html';
+  }
+
+  async function getUser() {
+    const res = await fetch('/user');
+    const user = await res.json();
+    document.getElementById('username').innerText = user.username;
+    document.getElementById('role').innerText = user.role;
+
+    const projectRes = await fetch('/my-projects');
+    const projects = await projectRes.json();
+
+    const taskSelect = document.getElementById('taskProjectSelect');
+    const weSelect = document.getElementById('weProjectSelect');
+    const projectTable = document.querySelector('#projectTable tbody');
+
+    taskSelect.innerHTML = '';
+    weSelect.innerHTML = '';
+    projectTable.innerHTML = '';
+
+    projects.forEach(p => {
+      const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.status}</td></tr>`;
+      projectTable.innerHTML += row;
+
+      if (p.status === 'approved') {
+        taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+        weSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      }
+    });
+  const allProjectDropdowns = [
+    'budgetProjectSelect',
+    'afeProjectSelect',
+    'invoiceProjectSelect',
+    'productionProjectSelect'
+  ];
+document.getElementById('afeQuantity').addEventListener('input', calculateAFEAmount);
+document.getElementById('afeUnitPrice').addEventListener('input', calculateAFEAmount);
+
+function calculateAFEAmount() {
+  const qty = parseFloat(document.getElementById('afeQuantity').value) || 0;
+  const price = parseFloat(document.getElementById('afeUnitPrice').value) || 0;
+  document.getElementById('afeCostEstimate').value = (qty * price).toFixed(2);
+}
+
+  allProjectDropdowns.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = projects
+        .filter(p => p.status === 'approved')
+        .map(p => `<option value="${p.id}">${p.name}</option>`)
+        .join('');
+    }
+  });
+  }
+async function loadApprovedWorkElements(taskId, targetSelectId) {
+  const res = await fetch(`/task-work-elements/${taskId}`);
+  const elements = await res.json();
+  const target = document.getElementById(targetSelectId);
+  target.innerHTML = elements.length
+    ? elements.map(e => `<option value="${e.id}">${e.name}</option>`).join('')
+    : '<option disabled>No work elements</option>';
+}
+
+
+async function loadBudgetForWorkElement(workElementId) {
+  const res = await fetch(`/work-element-budgets/${workElementId}`);
+  const budgets = await res.json();
+
+  if (budgets.length > 0) {
+    // Use the first approved budget
+    const budget = budgets[0];
+    document.getElementById('afeBudgetAmount').value = budget.amount;
+    document.getElementById('afeBudgetId').value = budget.id;
+  } else {
+    document.getElementById('afeBudgetAmount').value = 'No approved budget';
+    document.getElementById('afeBudgetId').value = '';
+  }
+}
+
+
+  async function loadApprovedTasks(projectId, targetSelectId) {
+  console.log("Loading tasks for project:", projectId);
+
+  const res = await fetch(`/project-tasks/${projectId}`);
+  const tasks = await res.json();
+
+  console.log("Received tasks:", tasks); // 👈 check this in console
+
+  const targetSelect = document.getElementById(targetSelectId);
+  if (targetSelect) {
+    targetSelect.innerHTML = '';
+
+    if (tasks.length === 0) {
+      targetSelect.innerHTML = '<option disabled>No tasks found</option>';
+    } else {
+      targetSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
+  }
+}
+
+
+  async function loadApprovedBudgets() {
+    const res = await fetch('/my-budgets');
+    const budgets = await res.json();
+    const select = document.getElementById('afeBudgetSelect');
+    select.innerHTML = budgets.filter(b => b.status === 'approved')
+      .map(b => `<option value="${b.id}">Budget #${b.id}</option>`).join('');
+  }
+
+  getUser();
+  loadApprovedBudgets();
+async function loadBudgets(workElementId, targetSelectId) {
+  console.log("Loading budgets for work element:", workElementId); // ✅
+
+  const res = await fetch(`/work-element-budgets/${workElementId}`);
+  const budgets = await res.json();
+  console.log("Fetched budgets:", budgets); // ✅
+
+  const target = document.getElementById(targetSelectId);
+  if (target) {
+    target.innerHTML = budgets.length
+      ? budgets.map(b => `<option value="${b.id}">Budget #${b.id}</option>`).join('')
+      : '<option disabled>No approved budgets found</option>';
+  }
+}
+
+  // ✅ Submit Project
+  document.getElementById('projectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit Task
+  document.getElementById('taskForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit Work Element
+  document.getElementById('workElementForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-work-element', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit Budget
+  document.getElementById('budgetForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-budget', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit AFE
+  document.getElementById('afeForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-afe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit Invoice (multipart/form-data)
+  document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-invoice', {
+      method: 'POST',
+      body: formData
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+
+  // ✅ Submit Production
+  document.getElementById('productionForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-production', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+  });
+</script>
+
+</body>
+</html>

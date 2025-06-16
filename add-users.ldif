@@ -1,0 +1,6 @@
+dn: uid=adminuser,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+cn: Admin User
+sn: User
+uid: adminuser
+userPassword: admin123
