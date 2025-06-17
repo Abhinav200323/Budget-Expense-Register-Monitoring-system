@@ -108,6 +108,17 @@ CREATE TABLE invoices (
     FOREIGN KEY (submitted_by) REFERENCES users(username),
     FOREIGN KEY (approved_by) REFERENCES users(username)
 );
+/* Extra fields the form and API already expect */
+ALTER TABLE invoices
+  ADD COLUMN invoice_number   VARCHAR(50),
+  ADD COLUMN vendor           VARCHAR(100),
+  ADD COLUMN user_department  VARCHAR(100),
+  ADD COLUMN contract_number  VARCHAR(100);
+
+/* Make room for ‘cancelled’ and keep the legacy states */
+ALTER TABLE invoices
+  MODIFY status ENUM('pending','approved','declined','cancelled') DEFAULT 'pending';
+
 ALTER TABLE afes 
   ADD COLUMN activity_description TEXT,
   ADD COLUMN unit VARCHAR(20),

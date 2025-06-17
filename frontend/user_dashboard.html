@@ -127,14 +127,27 @@
     <div id="afeSection" class="section">
       <h2>Submit AFE</h2>
       <div id="afeSummary" style="margin-bottom: 15px;">
-  <strong>AFE Budget:</strong> $<span id="afeAmountView">-</span><br>
-  <strong>Total Invoiced:</strong> $<span id="afeInvoiced">-</span><br>
-  <strong>Remaining Balance:</strong> $<span id="afeBalance">-</span>
+
+  
 </div>
 
       <form id="afeForm">
         
-<<h3>AFE Details</h3>
+<h3>AFE Details</h3>
+<!-- AFE PROJECT/TASK CASCADE -->
+<label>Select Approved Project:
+  <select id="afeProjectSelect" onchange="loadApprovedTasks(this.value, 'afeTaskSelect')"></select>
+</label>
+
+<label>Select Task:
+  <select id="afeTaskSelect" onchange="loadBudgetForProjectTask()" required></select>
+</label>
+
+<!-- Display budget amount -->
+<p>Approved Budget: ₹<span id="approvedBudgetAmount">--</span></p>
+
+<!-- Hidden field to store budget_id -->
+<input type="hidden" name="budget_id" id="afeBudgetId" required>
 
 <label>Activity Description:
   <input type="text" name="activity_description" required>
@@ -156,14 +169,6 @@
   <input type="number" name="amount" id="afeCostEstimate" readonly required>
 </label>
 
-<!-- Replaces budget dropdown -->
-<input type="hidden" name="budget_id" id="afeBudgetId">
-<label>Approved Budget Amount:
-  <input type="text" id="afeBudgetAmount" disabled>
-</label>
-
-
-
         </label>
         <label>AFE Title: <input name="afe_title" required></label>
         <label>Description: <input name="description" required></label>
@@ -172,23 +177,47 @@
     </div>
 
     <!-- Invoice Section -->
-    <div id="invoiceSection" class="section">
-      <h2>Submit Invoice</h2>
-   <label>Invoice Number:
-  <input type="text" name="invoice_number" required>
+<!-- Invoice Section -->
+<div id="invoiceSection" class="section">
+  <h2>Submit Invoice</h2>
+  <form id="invoiceForm" enctype="multipart/form-data">
+ <label>Select Approved Project:
+  <select id="invoiceProjectSelect" onchange="loadApprovedTasks(this.value, 'invoiceTaskSelect')" required></select>
 </label>
 
-<label>Vendor:
-  <input type="text" name="vendor" required>
+<label>Select Task:
+  <select id="invoiceTaskSelect" onchange="loadApprovedWorkElements(this.value, 'invoiceWESelect')" required></select>
 </label>
 
-<label>User Department:
-  <input type="text" name="user_department" required>
+<label>Select Work Element:
+<select id="invoiceWESelect" onchange="loadBudgets(this.value, 'invoiceBudgetSelect')" required></select>
+</label>
+<label>Select Approved Budget:
+  <select name="budget_id" id="invoiceBudgetSelect" required></select>
 </label>
 
-<label>Contract Number:
-  <input type="text" name="contract_number" required>
-</label>
+
+
+    <label>Invoice Title: <input name="invoice_title" required></label>
+    <label>Invoice Date: <input type="date" name="invoice_date" required></label>
+    <label>Amount: <input name="amount" type="number" step="0.01" required></label>
+    <label>Description: <input name="description" required></label>
+    <label>Invoice File: <input name="invoice_file" type="file" required></label>
+    <label>Invoice Number: <input type="text" name="invoice_number" required></label>
+    <label>Vendor: <input type="text" name="vendor" required></label>
+    <label>User Department: <input type="text" name="user_department" required></label>
+    <label>Contract Number: <input type="text" name="contract_number" required></label>
+
+    <button type="submit">Submit Invoice</button>
+
+  </form>
+</div>
+
+
+
+
+
+<!-- keep file upload + AFE selector as you already have -->
 
     <!-- Production Section -->
     <div id="productionSection" class="section">
@@ -314,7 +343,7 @@ async function loadBudgetForWorkElement(workElementId) {
       targetSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     }
   }
-}
+  }
 
 
   async function loadApprovedBudgets() {
@@ -327,20 +356,26 @@ async function loadBudgetForWorkElement(workElementId) {
 
   getUser();
   loadApprovedBudgets();
-async function loadBudgets(workElementId, targetSelectId) {
-  console.log("Loading budgets for work element:", workElementId); // ✅
-
-  const res = await fetch(`/work-element-budgets/${workElementId}`);
-  const budgets = await res.json();
-  console.log("Fetched budgets:", budgets); // ✅
-
-  const target = document.getElementById(targetSelectId);
-  if (target) {
-    target.innerHTML = budgets.length
-      ? budgets.map(b => `<option value="${b.id}">Budget #${b.id}</option>`).join('')
-      : '<option disabled>No approved budgets found</option>';
+async function loadAFEfromTask(taskId) {
+  const res = await fetch(`/afe-from-task/${taskId}`);
+  const afe = await res.json();
+  if (afe && afe.id) {
+    document.getElementById('invoiceAfeId').value = afe.id;
+  } else {
+    alert("⚠️ No approved AFE found for this task. Please ask manager to approve AFE first.");
+    document.getElementById('invoiceAfeId').value = '';
   }
 }
+
+async function loadBudgets(workElementId, targetSelectId) {
+  const res = await fetch(`/work-element-budgets/${workElementId}`);
+  const budgets = await res.json();
+  const target = document.getElementById(targetSelectId);
+  target.innerHTML = budgets.length
+    ? budgets.map(b => `<option value="${b.id}">Budget #${b.id} - $${b.amount}</option>`).join('')
+    : '<option disabled>No approved budgets found</option>';
+}
+
 
   // ✅ Submit Project
   document.getElementById('projectForm').addEventListener('submit', async (e) => {
@@ -354,6 +389,95 @@ async function loadBudgets(workElementId, targetSelectId) {
     alert(await res.text());
     e.target.reset();
   });
+  function loadInvoices() {
+    fetch('/my-invoices')
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.getElementById('invoiceTableBody');
+        tbody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.invoice_title}</td>
+            <td>${row.status}</td>
+            <td>${row.amount}</td>
+            <td>${new Date(row.invoice_date).toLocaleDateString()}</td>
+            <td>
+              ${row.file_path
+                ? `<a href="/${row.file_path}" target="_blank">📎 View</a>`
+                : 'No file'}
+            </td>
+            <td>
+              ${row.status === 'cancelled'
+                ? `<button onclick="revertInvoice(${row.id})">↩️ Undo</button>`
+                : row.status === 'pending'
+                  ? `<button onclick="cancelInvoice(${row.id})">🗑️ Cancel</button>`
+                  : ''}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+  }
+
+  function cancelInvoice(id) {
+    fetch('/cancel-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invoice_id: id })
+    })
+      .then(res => res.text())
+      .then(alert)
+      .then(loadInvoices);
+  }
+
+  function revertInvoice(id) {
+    fetch('/revert-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invoice_id: id })
+    })
+      .then(res => res.text())
+      .then(alert)
+      .then(loadInvoices);
+  }
+
+  document.addEventListener('DOMContentLoaded', loadInvoices);
+
+
+
+
+async function revertInvoice(id) {
+  const res = await fetch('/revert-invoice', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ invoice_id: id })
+  });
+  alert(await res.text());
+  loadMyInvoices();
+}
+
+  async function loadBudgetForProjectTask() {
+    const projectId = document.getElementById('afeProjectSelect').value;
+    const taskId = document.getElementById('afeTaskSelect').value;
+
+    if (!projectId || !taskId) return;
+
+    try {
+      const res = await fetch(`/api/budget-by-project-task?projectId=${projectId}&taskId=${taskId}`);
+      const data = await res.json();
+
+      if (data && data.amount !== undefined) {
+        document.getElementById('approvedBudgetAmount').textContent = data.amount;
+        document.getElementById('afeBudgetId').value = data.id;
+      } else {
+        document.getElementById('approvedBudgetAmount').textContent = 'No approved budget';
+        document.getElementById('afeBudgetId').value = '';
+      }
+    } catch (err) {
+      console.error('Error loading approved budget:', err);
+    }
+  }
 
   // ✅ Submit Task
   document.getElementById('taskForm')?.addEventListener('submit', async (e) => {
@@ -406,18 +530,43 @@ async function loadBudgets(workElementId, targetSelectId) {
     alert(await res.text());
     e.target.reset();
   });
+  // AFE -PROJECT
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/approved-projects')
+      .then(res => res.json())
+      .then(projects => {
+        const dropdown = document.getElementById('projectDropdown');
+        dropdown.innerHTML = '<option value="">Select a project</option>';
+        projects.forEach(project => {
+          const option = document.createElement('option');
+          option.value = project.id;
+          option.textContent = project.name;
+          dropdown.appendChild(option);
+        });
+      })
+      .catch(error => {
+        console.error('Failed to load approved projects:', error);
+        const dropdown = document.getElementById('projectDropdown');
+        dropdown.innerHTML = '<option value="">Error loading</option>';
+      });
+  });
+
 
   // ✅ Submit Invoice (multipart/form-data)
-  document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const res = await fetch('/submit-invoice', {
-      method: 'POST',
-      body: formData
-    });
-    alert(await res.text());
-    e.target.reset();
+document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+  const res = await fetch('/submit-invoice', {
+    method: 'POST',
+    body: formData
   });
+
+  const msg = await res.text();
+  alert(msg);
+  e.target.reset();
+});
+
 
   // ✅ Submit Production
   document.getElementById('productionForm')?.addEventListener('submit', async (e) => {

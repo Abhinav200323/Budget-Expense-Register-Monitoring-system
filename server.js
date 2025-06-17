@@ -48,6 +48,94 @@ function isManager(req, res, next) {
 }
 
 app.use(express.static(path.join(__dirname, 'frontend')));
+// Admin: Get approved projects with optional filters
+app.get('/admin/approved-projects', isAdmin, async (req, res) => {
+  const { from, to } = req.query;
+  const conditions = ['status = "approved"'];
+  const params = [];
+
+  if (from) {
+    conditions.push('approved_at >= ?');
+    params.push(from);
+  }
+  if (to) {
+    conditions.push('approved_at <= ?');
+    params.push(to);
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, name, submitted_by, approved_by, approved_at
+     FROM projects WHERE ${conditions.join(' AND ')}`,
+    params
+  );
+  res.json(rows);
+});
+
+
+// Admin: Get approved budgets with optional filters
+app.get('/admin/approved-budgets', isAdmin, async (req, res) => {
+  const { from, to, manager } = req.query;
+  const conditions = ['b.status = "approved"'];
+  const params = [];
+
+  if (manager) {
+    conditions.push('b.approved_by = ?');
+    params.push(manager);
+  }
+  if (from) {
+    conditions.push('b.approved_at >= ?');
+    params.push(from);
+  }
+  if (to) {
+    conditions.push('b.approved_at <= ?');
+    params.push(to);
+  }
+
+  const [rows] = await pool.query(`
+    SELECT b.id, b.amount, b.submitted_by, b.approved_by, b.approved_at,
+           we.name AS work_element_name,
+           t.name AS task_name,
+           p.name AS project_name
+    FROM budgets b
+    JOIN work_elements we ON b.work_element_id = we.id
+    JOIN tasks t ON we.task_id = t.id
+    JOIN projects p ON t.project_id = p.id
+    WHERE ${conditions.join(' AND ')}
+  `, params);
+
+  res.json(rows);
+});
+
+// Admin: Get production records with optional filters
+app.get('/admin/production-data', isAdmin, async (req, res) => {
+  const { from, to, manager } = req.query;
+  const conditions = ['1=1'];
+  const params = [];
+
+  if (from) {
+    conditions.push('pr.production_date >= ?');
+    params.push(from);
+  }
+  if (to) {
+    conditions.push('pr.production_date <= ?');
+    params.push(to);
+  }
+  if (manager) {
+    conditions.push('p.approved_by = ?');
+    params.push(manager);
+  }
+
+  const [rows] = await pool.query(`
+    SELECT pr.id, pr.price_per_barrel, pr.number_of_barrels, pr.cost, pr.profit, pr.production_date,
+           p.name AS project_name,
+           p.approved_by AS manager
+    FROM production pr
+    JOIN projects p ON pr.project_id = p.id
+    WHERE ${conditions.join(' AND ')}
+  `, params);
+
+  res.json(rows);
+});
 
 app.get('/', (req, res) => {
   if (!req.session.user) return res.sendFile(path.join(__dirname, 'frontend/login.html'));
@@ -73,20 +161,67 @@ app.get('/work-element-budgets/:weId', checkAuth, async (req, res) => {
   );
   res.json(rows);
 });
+app.get('/api/approved-projects', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, name FROM projects WHERE status = 'approved'"
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching approved projects:', error);
+    res.status(500).send('Server error');
+  }
+});
+app.get('/api/budget-by-project-task', async (req, res) => {
+  const { projectId, taskId } = req.query;
+
+  if (!projectId || !taskId) return res.status(400).send('Missing params');
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT b.id, b.amount
+      FROM budgets b
+      JOIN work_elements we ON b.work_element_id = we.id
+      JOIN tasks t ON we.task_id = t.id
+      WHERE t.id = ? AND t.project_id = ? AND b.status = 'approved'
+      LIMIT 1
+    `, [taskId, projectId]);
+
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.json({});
+    }
+  } catch (e) {
+    console.error('Error fetching budget:', e);
+    res.status(500).send('Server error');
+  }
+});
 
 
 
-app.post('/login', (req, res) => {
+app.post('/login', (req, res, next) => {
   const { username, password } = req.body;
+
   ldap.authenticate(username, password, async (err, user) => {
-    if (err || !user) return res.send('LDAP auth failed');
+    if (err || !user) {
+      return res.status(401).send('LDAP auth failed');
+    }
+
     try {
-      const [rows] = await pool.query('SELECT role FROM users WHERE username = ?', [username]);
-      if (!rows.length) return res.send('User not found in DB');
+      const [rows] = await pool.query(
+        'SELECT role FROM users WHERE username = ?',
+        [username]
+      );
+
+      if (!rows.length) {
+        return res.status(404).send('User not found in DB');
+      }
+
       req.session.user = { username, role: rows[0].role };
-      res.redirect('/');
+      return res.redirect('/');          // ← return stops execution
     } catch (e) {
-      res.send('DB error: ' + e.message);
+      return next(e);                    // single unified error path
     }
   });
 });
@@ -282,7 +417,17 @@ app.post('/submit-budget', checkAuth, async (req, res) => {
 
 
 app.post('/submit-afe', checkAuth, async (req, res) => {
-  const { budget_id, afe_title, description } = req.body;
+  const {
+    budget_id,
+    afe_title,
+    description,
+    amount,
+    activity_description,
+    unit,
+    quantity,
+    unit_price
+  } = req.body;
+
 
   const [project] = await pool.query(`
     SELECT p.status FROM projects p
@@ -295,29 +440,38 @@ app.post('/submit-afe', checkAuth, async (req, res) => {
     return res.status(400).send('Associated project is not approved. Cannot submit AFE.');
   }
 
-  await pool.query(`
-  INSERT INTO afes 
-  (budget_id, afe_title, description, submitted_by, amount, activity_description, unit, quantity, unit_price)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-[
-  budget_id,
-  afe_title,
-  description,
-  req.session.user.username,
-  afeAmount,
-  req.body.activity_description,
-  req.body.unit,
-  req.body.quantity,
-  req.body.unit_price
-]);
+    await pool.query(`
+    INSERT INTO afes 
+    (budget_id, afe_title, description, submitted_by, amount, activity_description, unit, quantity, unit_price)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      budget_id,
+      afe_title,
+      description,
+      req.session.user.username,
++     amount,                    // ✅ fix
+      activity_description,
+      unit,
+      quantity,
+      unit_price
+    ]);
+
 
   res.send('AFE submitted successfully.');
 });
 
 
+app.get('/afe-from-budget/:budgetId', checkAuth, async (req, res) => {
+  const [afe] = await pool.query(
+    'SELECT id FROM afes WHERE budget_id = ? AND status = "approved"', 
+    [req.params.budgetId]
+  );
+  res.json(afe[0] || {});
+});
+
 app.post('/submit-invoice', checkAuth, upload.single('invoice_file'), async (req, res) => {
   const {
-    afe_id,
+    budget_id,
     invoice_title,
     invoice_date,
     amount,
@@ -328,29 +482,18 @@ app.post('/submit-invoice', checkAuth, upload.single('invoice_file'), async (req
     contract_number
   } = req.body;
 
+  // ✅ Fix: Define filePath before using it
   const filePath = req.file ? req.file.path : null;
 
-  // 🔎 Validate project is approved
-  const [project] = await pool.query(`
-    SELECT p.status FROM projects p
-    JOIN tasks t ON t.project_id = p.id
-    JOIN work_elements w ON w.task_id = t.id
-    JOIN budgets b ON b.work_element_id = w.id
-    JOIN afes a ON a.budget_id = b.id
-    WHERE a.id = ?`, [afe_id]);
+  // 🔍 Lookup approved AFE for the given budget
+  const [afe] = await pool.query(
+    'SELECT id, amount, total_invoiced FROM afes WHERE budget_id = ? AND status = "approved"',
+    [budget_id]
+  );
 
-  if (!project.length || project[0].status !== 'approved') {
-    return res.status(400).send('Associated project is not approved. Cannot submit invoice.');
-  }
+  if (!afe.length) return res.status(400).send('❌ No approved AFE found for this budget.');
 
-  // 🔎 Validate amount against AFE balance
-  const [afe] = await pool.query('SELECT amount, total_invoiced FROM afes WHERE id = ?', [afe_id]);
-  if (!afe.length) return res.status(400).send('Invalid AFE');
-
-  const newInvoiced = parseFloat(afe[0].total_invoiced || 0) + parseFloat(amount);
-  if (newInvoiced > parseFloat(afe[0].amount)) {
-    return res.status(400).send('Invoice exceeds AFE balance.');
-  }
+  const afe_id = afe[0].id;
 
   // ✅ Insert invoice
   await pool.query(`
@@ -373,36 +516,81 @@ app.post('/submit-invoice', checkAuth, upload.single('invoice_file'), async (req
     ]
   );
 
-  // ✅ Offset invoice from AFE balance
+  // ✅ Update AFE invoiced total
   await pool.query('UPDATE afes SET total_invoiced = total_invoiced + ? WHERE id = ?', [amount, afe_id]);
 
-  res.send('Invoice submitted and offset recorded.');
+  res.send('✅ Invoice submitted and offset recorded.');
 });
+
+
+
 app.post('/cancel-invoice', checkAuth, async (req, res) => {
   const { invoice_id } = req.body;
 
-  const [invoice] = await pool.query('SELECT * FROM invoices WHERE id = ?', [invoice_id]);
-  if (!invoice.length || invoice[0].status === 'cancelled') {
-    return res.status(400).send('Invalid or already cancelled invoice');
-  }
+  const [invoiceRows] = await pool.query(
+    'SELECT * FROM invoices WHERE id = ?', [invoice_id]
+  );
+  if (!invoiceRows.length)
+    return res.status(404).send('Invoice not found');
 
-  // 🔁 Revert offset in AFE
-  await pool.query(`
-    UPDATE afes 
-    SET total_invoiced = total_invoiced - ? 
-    WHERE id = (SELECT budget_id FROM afes WHERE id = ?)`, 
-    [invoice[0].amount, invoice[0].afe_id]
+  const inv = invoiceRows[0];
+  if (inv.status === 'approved')
+    return res.status(403).send('Manager has already approved this invoice');
+  if (inv.status === 'cancelled')
+    return res.status(400).send('Invoice already cancelled');
+
+  // 🔁 Roll back AFE total
+  await pool.query(
+    'UPDATE afes SET total_invoiced = total_invoiced - ? WHERE id = ?',
+    [inv.amount, inv.afe_id]
   );
 
   // 🛑 Mark invoice cancelled
-  await pool.query(`
-    UPDATE invoices 
-    SET status = 'cancelled', cancelled_by = ?, cancelled_at = NOW() 
-    WHERE id = ?`,
+  await pool.query(
+    `UPDATE invoices
+       SET status = 'cancelled',
+           cancelled_by = ?,
+           cancelled_at = NOW()
+     WHERE id = ?`,
     [req.session.user.username, invoice_id]
   );
 
   res.send('Invoice cancelled and offset reverted.');
+});
+app.get('/my-invoices', checkAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM invoices WHERE submitted_by = ? ORDER BY created_at DESC',
+      [req.session.user.username]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to fetch invoices');
+  }
+});
+
+app.post('/revert-invoice', checkAuth, async (req, res) => {
+  const { invoice_id } = req.body;
+  const [inv] = await pool.query('SELECT * FROM invoices WHERE id = ?', [invoice_id]);
+
+  if (!inv.length || inv[0].status !== 'cancelled')
+    return res.status(400).send('Invoice is not cancelled');
+
+  // put the money back on the AFE
+  await pool.query(
+    `UPDATE afes SET total_invoiced = total_invoiced + ? WHERE id = ?`,
+    [inv[0].amount, inv[0].afe_id]
+  );
+
+  await pool.query(
+    `UPDATE invoices
+       SET status = 'pending',
+           cancelled_by = NULL,
+           cancelled_at = NULL
+     WHERE id = ?`, [invoice_id]);
+
+  res.send('Invoice reinstated');
 });
 
 app.post('/submit-production', checkAuth, async (req, res) => {

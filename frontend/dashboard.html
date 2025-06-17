@@ -86,6 +86,9 @@
   <nav>
     <h2>Admin Panel</h2>
     <a href="#" onclick="showSection('dashboard')">Dashboard</a>
+    <a href="#" onclick="showSection('approvedProjects')">Approved Projects</a>
+    <a href="#" onclick="showSection('approvedBudgets')">Approved Budgets</a>
+    <a href="#" onclick="showSection('productionData')">Production Records</a>
     <a href="#" onclick="showSection('addUser')">Add User</a>
     <a href="#" onclick="showSection('deleteUser')">Delete User</a>
     <a href="#" onclick="showSection('changeRole')">Change Role</a>
@@ -99,6 +102,38 @@
     <section id="dashboard" class="section">
       <h3>System Metrics</h3>
       <canvas id="chart" width="600" height="300"></canvas>
+    </section>
+
+    <section id="approvedProjects" class="section">
+      <h3>Approved Projects</h3>
+      <form id="projectFilterForm">
+        <label>From: <input type="date" name="from"></label>
+        <label>To: <input type="date" name="to"></label>
+        <button type="submit">Filter</button>
+      </form>
+      <div id="projectResults"></div>
+    </section>
+
+    <section id="approvedBudgets" class="section">
+      <h3>Approved Budgets</h3>
+      <form id="budgetFilterForm">
+        <label>Manager: <input type="text" name="manager"></label>
+        <label>From: <input type="date" name="from"></label>
+        <label>To: <input type="date" name="to"></label>
+        <button type="submit">Filter</button>
+      </form>
+      <div id="budgetResults"></div>
+    </section>
+
+    <section id="productionData" class="section">
+      <h3>Production Records</h3>
+      <form id="productionFilterForm">
+        <label>Manager: <input type="text" name="manager"></label>
+        <label>From: <input type="date" name="from"></label>
+        <label>To: <input type="date" name="to"></label>
+        <button type="submit">Filter</button>
+      </form>
+      <div id="productionResults"></div>
     </section>
 
     <section id="addUser" class="section">
@@ -160,42 +195,6 @@
       document.getElementById('role').innerText = user.role;
     }
 
-    document.getElementById('addUserForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new URLSearchParams(new FormData(e.target));
-      const res = await fetch('/admin/add-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
-      alert(await res.text());
-      e.target.reset();
-    });
-
-    document.getElementById('deleteUserForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new URLSearchParams(new FormData(e.target));
-      const res = await fetch('/admin/delete-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
-      alert(await res.text());
-      e.target.reset();
-    });
-
-    document.getElementById('changeRoleForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new URLSearchParams(new FormData(e.target));
-      const res = await fetch('/admin/change-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
-      alert(await res.text());
-      e.target.reset();
-    });
-
     async function loadMetrics() {
       const res = await fetch('/dashboard-metrics');
       const data = await res.json();
@@ -206,12 +205,46 @@
           labels: ['Projects', 'Budgets', 'AFEs', 'Invoices', 'Profit'],
           datasets: [{
             label: 'System Overview',
-            data: [data.projects, data.budgets, data.afes, data.invoices, data.profit],
+            data: [data.totalProjects, data.totalBudgets, data.totalAFEs, data.totalInvoices, data.totalProfit],
             backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#e91e63', '#9c27b0']
           }]
         }
       });
     }
+
+    async function fetchFilteredData(formId, endpoint, resultDivId) {
+      const form = document.getElementById(formId);
+      const formData = new URLSearchParams(new FormData(form)).toString();
+      const res = await fetch(`${endpoint}?${formData}`);
+      const data = await res.json();
+      const container = document.getElementById(resultDivId);
+      if (!data.length) return container.innerHTML = '<p>No records found.</p>';
+
+      const columns = Object.keys(data[0]);
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead><tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${data.map(row => `<tr>${columns.map(col => `<td>${row[col]}</td>`).join('')}</tr>`).join('')}
+        </tbody>`;
+      container.innerHTML = '';
+      container.appendChild(table);
+    }
+
+    document.getElementById('projectFilterForm').addEventListener('submit', e => {
+      e.preventDefault();
+      fetchFilteredData('projectFilterForm', '/admin/approved-projects', 'projectResults');
+    });
+
+    document.getElementById('budgetFilterForm').addEventListener('submit', e => {
+      e.preventDefault();
+      fetchFilteredData('budgetFilterForm', '/admin/approved-budgets', 'budgetResults');
+    });
+
+    document.getElementById('productionFilterForm').addEventListener('submit', e => {
+      e.preventDefault();
+      fetchFilteredData('productionFilterForm', '/admin/production-data', 'productionResults');
+    });
 
     getUser();
     loadMetrics();
