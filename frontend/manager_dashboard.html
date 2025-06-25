@@ -77,6 +77,7 @@
     <h2>Manager Panel</h2>
     <a href="#" onclick="showSection('projects')">Project Requests</a>
     <a href="#" onclick="showSection('budgets')">Budget Requests</a>
+    <a href="#" onclick="showSection('budgetChanges')">Budget Changes</a>
     <a href="#" onclick="showSection('afes')">AFE Requests</a>
     <a href="#" onclick="showSection('invoices')">Invoice Requests</a>
     <a href="/logout">Logout</a>
@@ -94,6 +95,10 @@
       <h3>Pending Budget Approvals</h3>
       <div id="pendingBudgets"></div>
     </section>
+    <section id="budgetChanges" class="section">
+  <h3>Pending Budget Changes</h3>
+  <div id="pendingBudgetChanges"></div>
+</section>
 
     <section id="afes" class="section">
       <h3>Pending AFE Approvals</h3>
@@ -124,47 +129,56 @@
     }
 
     async function renderList(endpoint, targetId, updateUrl) {
-      const res = await fetch(endpoint);
-      const items = await res.json();
-      const target = document.getElementById(targetId);
-      target.innerHTML = '';
+  const res = await fetch(endpoint);
+  const items = await res.json();
+  const target = document.getElementById(targetId);
+  target.innerHTML = '';
 
-      if (items.length === 0) {
-        target.innerHTML = '<p>No pending requests.</p>';
-        return;
-      }
+  if (items.length === 0) {
+    target.innerHTML = '<p>No pending requests.</p>';
+    return;
+  }
 
-      const excludeKeys = ['approved_by', 'approved_at'];
-      const columns = Object.keys(items[0]).filter(key => !excludeKeys.includes(key));
+  const excludeKeys = ['approved_by', 'approved_at'];
+  const columns = Object.keys(items[0]).filter(key => !excludeKeys.includes(key));
 
-      const table = document.createElement('table');
-      table.innerHTML = `
-        <thead>
-          <tr>
-            ${columns.map(key => `<th>${key}</th>`).join('')}
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${items.map(item => `
-            <tr>
-              ${columns.map(key => `<td>${item[key] ?? ''}</td>`).join('')}
-              <td>
-                <button onclick="approveItem('${updateUrl}', ${item.id}, 'approved')">✅</button>
-                <button onclick="approveItem('${updateUrl}', ${item.id}, 'declined')">❌</button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      `;
-      target.appendChild(table);
-    }
+  const table = document.createElement('table');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        ${columns.map(key => `<th>${key}</th>`).join('')}
+        <th>Invoice File</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map(item => `
+        <tr>
+          ${columns.map(key => `<td>${item[key] ?? ''}</td>`).join('')}
+          <td>
+            ${item.file_path 
+              ? `<a href="/${item.file_path}" target="_blank">📎 View</a>` 
+              : 'No file'}
+          </td>
+          <td>
+            <button onclick="approveItem('${updateUrl}', ${item.id}, 'approved')">✅</button>
+            <button onclick="approveItem('${updateUrl}', ${item.id}, 'declined')">❌</button>
+          </td>
+        </tr>`).join('')}
+    </tbody>
+  `;
+  target.appendChild(table);
+}
+
 
     function loadData() {
-      renderList('/pending-projects', 'pendingProjects', '/update-project');
-      renderList('/pending-budgets', 'pendingBudgets', '/update-budget');
-      renderList('/pending-afes', 'pendingAFEs', '/update-afe');
-      renderList('/pending-invoices', 'pendingInvoices', '/update-invoice');
-    }
+  renderList('/pending-projects', 'pendingProjects', '/update-project');
+  renderList('/pending-budgets', 'pendingBudgets', '/update-budget');
+  renderList('/pending-afes', 'pendingAFEs', '/update-afe');
+  renderList('/pending-invoices', 'pendingInvoices', '/update-invoice');
+  renderList('/pending-budget-changes', 'pendingBudgetChanges', '/update-budget-change'); // 🆕
+}
+
 
     loadData();
     showSection('projects');
