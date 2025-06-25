@@ -350,13 +350,35 @@ app.post('/admin/delete-user', isAdmin, async (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).send('Username is required');
 
+  const ldapClient = ldapjs.createClient({ url: 'ldap://localhost:389' });
+  const userDN = `uid=${username},ou=users,dc=testorg,dc=com`;
+
   try {
+    // 1. Delete from MySQL
     await pool.query('DELETE FROM users WHERE username = ?', [username]);
-    res.send('🗑️ User deleted from MySQL. (LDAP deletion must be manual)');
+
+    // 2. Delete from LDAP
+    await new Promise((resolve, reject) => {
+      ldapClient.bind('cn=admin,dc=testorg,dc=com', 'admin123', (err) => {
+        if (err) return reject('LDAP Bind Failed: ' + err.message);
+
+        ldapClient.del(userDN, (err2) => {
+          ldapClient.unbind();
+          if (err2 && err2.name !== 'NoSuchObjectError') {
+            return reject('LDAP Delete Failed: ' + err2.message);
+          }
+          resolve();
+        });
+      });
+    });
+
+    res.send('🗑️ User deleted from MySQL and LDAP');
   } catch (e) {
+    console.error('Delete Error:', e);
     res.status(500).send('❌ Error deleting user: ' + e.message);
   }
 });
+
 app.get('/project-tasks/:projectId', checkAuth, async (req, res) => {
   const projectId = req.params.projectId;
   try {
