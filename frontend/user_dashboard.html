@@ -248,57 +248,56 @@
     location.href = '/login.html';
   }
 
-  async function getUser() {
-    const res = await fetch('/user');
-    const user = await res.json();
-    document.getElementById('username').innerText = user.username;
-    document.getElementById('role').innerText = user.role;
+ async function getUser() {
+  const res = await fetch('/user');
+  const user = await res.json();
+  document.getElementById('username').innerText = user.username;
+  document.getElementById('role').innerText = user.role;
 
-    const projectRes = await fetch('/my-projects');
-    const projects = await projectRes.json();
+  const projectRes = await fetch('/my-projects');
+  const projects = await projectRes.json();
 
-    const taskSelect = document.getElementById('taskProjectSelect');
-    const weSelect = document.getElementById('weProjectSelect');
-    const projectTable = document.querySelector('#projectTable tbody');
+  const taskSelect = document.getElementById('taskProjectSelect');
+  const weSelect = document.getElementById('weProjectSelect');
+  const projectTable = document.querySelector('#projectTable tbody');
 
-    taskSelect.innerHTML = '';
-    weSelect.innerHTML = '';
-    projectTable.innerHTML = '';
+  taskSelect.innerHTML = '';
+  weSelect.innerHTML = '';
+  projectTable.innerHTML = '';
 
-    projects.forEach(p => {
-      const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.status}</td></tr>`;
-      projectTable.innerHTML += row;
-
-      if (p.status === 'approved') {
-        taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-        weSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-      }
-    });
   const allProjectDropdowns = [
     'budgetProjectSelect',
     'afeProjectSelect',
     'invoiceProjectSelect',
     'productionProjectSelect'
   ];
-document.getElementById('afeQuantity').addEventListener('input', calculateAFEAmount);
-document.getElementById('afeUnitPrice').addEventListener('input', calculateAFEAmount);
 
-function calculateAFEAmount() {
-  const qty = parseFloat(document.getElementById('afeQuantity').value) || 0;
-  const price = parseFloat(document.getElementById('afeUnitPrice').value) || 0;
-  document.getElementById('afeCostEstimate').value = (qty * price).toFixed(2);
-}
+  if (projects.length === 0) {
+    projectTable.innerHTML = '<tr><td colspan="3">No projects submitted yet.</td></tr>';
+  }
 
+  projects.forEach(p => {
+    const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.status}</td></tr>`;
+    projectTable.innerHTML += row;
+
+    if (p.status === 'approved') {
+      taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      weSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    }
+  });
+
+  // Populate dropdowns for other forms
   allProjectDropdowns.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.innerHTML = projects
         .filter(p => p.status === 'approved')
         .map(p => `<option value="${p.id}">${p.name}</option>`)
-        .join('');
+        .join('') || '<option disabled selected>No approved projects found</option>';
     }
   });
-  }
+}
+
 async function loadApprovedWorkElements(taskId, targetSelectId) {
   const res = await fetch(`/task-work-elements/${taskId}`);
   const elements = await res.json();
@@ -419,6 +418,14 @@ async function loadBudgets(workElementId, targetSelectId) {
         });
       });
   }
+document.getElementById('afeQuantity').addEventListener('input', calculateAFEAmount);
+document.getElementById('afeUnitPrice').addEventListener('input', calculateAFEAmount);
+
+function calculateAFEAmount() {
+  const quantity = parseFloat(document.getElementById('afeQuantity').value) || 0;
+  const unitPrice = parseFloat(document.getElementById('afeUnitPrice').value) || 0;
+  document.getElementById('afeCostEstimate').value = (quantity * unitPrice).toFixed(2);
+}
 
   function cancelInvoice(id) {
     fetch('/cancel-invoice', {

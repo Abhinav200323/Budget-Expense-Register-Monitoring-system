@@ -230,6 +230,44 @@
       container.innerHTML = '';
       container.appendChild(table);
     }
+    // ✅ Add User
+document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const res = await fetch('/admin/add-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  });
+  alert(await res.text());
+  e.target.reset();
+});
+
+// ✅ Delete User
+document.getElementById('deleteUserForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const res = await fetch('/admin/delete-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  });
+  alert(await res.text());
+  e.target.reset();
+});
+
+// ✅ Change User Role
+document.getElementById('changeRoleForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const res = await fetch('/admin/change-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  });
+  alert(await res.text());
+  e.target.reset();
+});
 
     document.getElementById('projectFilterForm').addEventListener('submit', e => {
       e.preventDefault();

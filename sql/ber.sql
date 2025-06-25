@@ -114,6 +114,9 @@ ALTER TABLE invoices
   ADD COLUMN vendor           VARCHAR(100),
   ADD COLUMN user_department  VARCHAR(100),
   ADD COLUMN contract_number  VARCHAR(100);
+SELECT * FROM afes 
+WHERE budget_id = 1 AND status = 'approved';
+
 
 /* Make room for ‘cancelled’ and keep the legacy states */
 ALTER TABLE invoices
@@ -162,3 +165,5 @@ USE ber;
 
 INSERT INTO users (username, role, is_ldap)
 VALUES ('abhin', 'manager', true);
+INSERT INTO `users`(`id`,`username`,`role`,`is_ldap`,`password_hash`) VALUES(1,'adminuser','admin',1,'admin123
+');
