@@ -136,6 +136,41 @@ app.get('/admin/production-data', isAdmin, async (req, res) => {
 
   res.json(rows);
 });
+app.post('/submit-budget-change', checkAuth, async (req, res) => {
+  const {
+    source_project_id,
+    source_work_element_id,
+    source_budget_id,
+    source_budget_name,
+    destination_project_id,
+    destination_work_element_id,
+    transfer_amount,
+    transfer_date,
+    bcr_number
+  } = req.body;
+
+  if (!source_project_id || !destination_project_id || !transfer_amount || !bcr_number) {
+    return res.status(400).send('Missing required fields.');
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO budget_changes (
+        source_project_id, source_work_element_id, source_budget_id, source_budget_name,
+        destination_project_id, destination_work_element_id, transfer_amount, transfer_date, bcr_number, submitted_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        source_project_id, source_work_element_id, source_budget_id, source_budget_name,
+        destination_project_id, destination_work_element_id, transfer_amount, transfer_date, bcr_number, req.session.user.username
+      ]
+    );
+
+    res.send('✅ Budget change request submitted successfully.');
+  } catch (e) {
+    console.error('Error inserting budget change:', e);
+    res.status(500).send('❌ Failed to submit budget change.');
+  }
+});
 
 app.get('/', (req, res) => {
   if (!req.session.user) return res.sendFile(path.join(__dirname, 'frontend/login.html'));

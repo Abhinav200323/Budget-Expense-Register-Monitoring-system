@@ -48,6 +48,7 @@
     <button onclick="showSection('taskSection')">Tasks</button>
     <button onclick="showSection('workElementSection')">Work Elements</button>
     <button onclick="showSection('budgetSection')">Budgets</button>
+    <button onclick="showSection('budgetChangeSection')">Budget Change</button>
     <button onclick="showSection('afeSection')">AFEs</button>
     <button onclick="showSection('invoiceSection')">Invoices</button>
     <button onclick="showSection('productionSection')">Production</button>
@@ -122,6 +123,56 @@
         <button type="submit">Submit Budget</button>
       </form>
     </div>
+<div id="budgetChangeSection" class="section">
+  <h2>Budget Change Request</h2>
+
+  <div style="background:#e6f2ff;padding:12px;border-left:5px solid #007BFF;margin-bottom:15px;">
+    <strong>Budget Change Policy:</strong><br>
+    Budget can be transferred from one work element item to another or from work element items to another task’s work element item.<br><br>
+    <strong>If within the same task’s work element:</strong> include <em>Budget ID</em>, <em>Budget Name</em>, <em>Date</em>, <em>Amount</em>, and <strong>BCR Approval Number</strong> (generated).<br>
+    <strong>If across different projects:</strong> attach respective details along with the <strong>BCR Approval Number</strong>.
+  </div>
+
+  <form id="budgetChangeForm">
+    <label>Source Project:
+      <select id="sourceProjectSelect" name="source_project_id" required></select>
+    </label>
+
+    <label>Source Work Element:
+      <select id="sourceWorkElementSelect" name="source_work_element_id" required></select>
+    </label>
+
+    <label>Budget ID:
+      <input type="number" name="source_budget_id" required>
+    </label>
+
+    <label>Budget Name:
+      <input type="text" name="source_budget_name" required>
+    </label>
+
+    <label>Destination Project:
+      <select id="destinationProjectSelect" name="destination_project_id" required></select>
+    </label>
+
+    <label>Destination Work Element:
+      <select id="destinationWorkElementSelect" name="destination_work_element_id" required></select>
+    </label>
+
+    <label>Amount:
+      <input type="number" name="transfer_amount" step="0.01" required>
+    </label>
+
+    <label>Transfer Date:
+      <input type="date" name="transfer_date" required>
+    </label>
+
+    <label>BCR Approval Number:
+      <input type="text" name="bcr_number" id="bcrAuto" readonly required>
+    </label>
+
+    <button type="submit">Submit Budget Change</button>
+  </form>
+</div>
 
     <!-- AFE Section -->
     <div id="afeSection" class="section">
@@ -453,6 +504,67 @@ function calculateAFEAmount() {
 
 
 
+async function loadProjectDropdowns() {
+  const res = await fetch('/my-projects');
+  const projects = await res.json();
+
+  ['sourceProjectSelect', 'destinationProjectSelect'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = projects
+      .filter(p => p.status === 'approved')
+      .map(p => `<option value="${p.id}">${p.name}</option>`)
+      .join('') || '<option disabled>No approved projects</option>';
+  });
+}
+
+document.getElementById('sourceProjectSelect')?.addEventListener('change', async function () {
+  const res = await fetch(`/project-tasks/${this.value}`);
+  const tasks = await res.json();
+  const taskIds = tasks.map(t => t.id);
+
+  const workElementRes = await Promise.all(
+    taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
+  );
+
+  const workElements = workElementRes.flat();
+
+  const sel = document.getElementById('sourceWorkElementSelect');
+  sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+});
+
+document.getElementById('destinationProjectSelect')?.addEventListener('change', async function () {
+  const res = await fetch(`/project-tasks/${this.value}`);
+  const tasks = await res.json();
+  const taskIds = tasks.map(t => t.id);
+
+  const workElementRes = await Promise.all(
+    taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
+  );
+
+  const workElements = workElementRes.flat();
+
+  const sel = document.getElementById('destinationWorkElementSelect');
+  sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+});
+
+// Generate BCR number
+document.getElementById('bcrAuto').value = 'BCR-' + Date.now();
+
+// Submit form
+document.getElementById('budgetChangeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const res = await fetch('/submit-budget-change', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  });
+  alert(await res.text());
+  e.target.reset();
+  document.getElementById('bcrAuto').value = 'BCR-' + Date.now();
+});
+
+loadProjectDropdowns();
 
 async function revertInvoice(id) {
   const res = await fetch('/revert-invoice', {
