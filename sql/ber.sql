@@ -12,7 +12,33 @@ CREATE TABLE users (
     is_ldap BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE afes
+  CHANGE amount cost_estimate DECIMAL(15,2);
 
+ALTER TABLE afes
+  DROP COLUMN balance_remaining;
+
+ALTER TABLE afes
+  ADD COLUMN balance_remaining DECIMAL(15,2)
+  GENERATED ALWAYS AS (cost_estimate - total_invoiced) STORED;
+
+CREATE TABLE budget_changes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  source_project_id INT,
+  source_work_element_id INT,
+  source_budget_id INT,
+  source_budget_name VARCHAR(100),
+  destination_project_id INT,
+  destination_work_element_id INT,
+  transfer_amount DECIMAL(15,2),
+  transfer_date DATE,
+  bcr_number VARCHAR(100),
+  submitted_by VARCHAR(50),
+  status ENUM('pending', 'approved', 'declined') DEFAULT 'pending',
+  approved_by VARCHAR(50),
+  approved_at DATETIME,
+  FOREIGN KEY (submitted_by) REFERENCES users(username)
+);
 -- USER SESSIONS (Optional if session-based auth used)
 CREATE TABLE user_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -163,7 +189,6 @@ CREATE TABLE production (
 );
 USE ber;
 
-INSERT INTO users (username, role, is_ldap)
-VALUES ('abhin', 'manager', true);
+
 INSERT INTO `users`(`id`,`username`,`role`,`is_ldap`,`password_hash`) VALUES(1,'adminuser','admin',1,'admin123
 ');

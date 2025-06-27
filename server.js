@@ -105,6 +105,66 @@ app.get('/admin/approved-budgets', isAdmin, async (req, res) => {
 
   res.json(rows);
 });
+app.get('/pending-budget-changes', isManager, async (req, res) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM budget_changes WHERE status = "pending"'
+  );
+  res.json(rows);
+});
+app.post('/update-budget-change', isManager, async (req, res) => {
+  const { id, status } = req.body;
+  if (!['approved', 'declined'].includes(status)) {
+    return res.status(400).send('Invalid status');
+  }
+
+  try {
+    const [[change]] = await pool.query('SELECT * FROM budget_changes WHERE id = ?', [id]);
+    if (!change) return res.status(404).send('Budget change not found');
+
+    await pool.query(
+      `UPDATE budget_changes SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?`,
+      [status, req.session.user.username, id]
+    );
+
+    if (status === 'approved') {
+      // Deduct from source budget
+      await pool.query(
+        `UPDATE budgets SET amount = amount - ? WHERE id = ?`,
+        [change.transfer_amount, change.source_budget_id]
+      );
+
+      // Add to destination budget (or create new budget if needed)
+      const [existingBudgets] = await pool.query(
+        `SELECT id FROM budgets WHERE work_element_id = ? AND status = 'approved' LIMIT 1`,
+        [change.destination_work_element_id]
+      );
+
+      if (existingBudgets.length > 0) {
+        await pool.query(
+          `UPDATE budgets SET amount = amount + ? WHERE id = ?`,
+          [change.transfer_amount, existingBudgets[0].id]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO budgets (work_element_id, submitted_by, amount, description, status, approved_by, approved_at)
+           VALUES (?, ?, ?, ?, 'approved', ?, NOW())`,
+          [
+            change.destination_work_element_id,
+            change.submitted_by,
+            change.transfer_amount,
+            `Transferred via BCR ${change.bcr_number}`,
+            req.session.user.username
+          ]
+        );
+      }
+    }
+
+    res.send(`✅ Budget change ${status}`);
+  } catch (e) {
+    console.error('Error updating budget change:', e);
+    res.status(500).send('❌ Failed to update budget change');
+  }
+});
 
 // Admin: Get production records with optional filters
 app.get('/admin/production-data', isAdmin, async (req, res) => {
@@ -266,20 +326,24 @@ app.get('/logout', (req, res) => {
 });
 app.get('/dashboard-metrics', isAdmin, async (req, res) => {
   try {
-    const [projects] = await pool.query('SELECT COUNT(*) as count FROM projects');
-    const [budgets] = await pool.query('SELECT COUNT(*) as count FROM budgets');
-    const [afes] = await pool.query('SELECT COUNT(*) as count FROM afes');
-    const [invoices] = await pool.query('SELECT COUNT(*) as count FROM invoices');
-    const [production] = await pool.query('SELECT SUM(price_per_barrel * number_of_barrels - cost) as profit FROM production');
+    const [[totalProjects]] = await pool.query('SELECT COUNT(*) as count FROM projects WHERE status = "approved"');
+    const [[totalBudgets]] = await pool.query('SELECT COUNT(*) as count FROM budgets WHERE status = "approved"');
+    const [[totalAFEs]] = await pool.query('SELECT COUNT(*) as count FROM afes WHERE status = "approved"');
+    const [[totalInvoices]] = await pool.query('SELECT COUNT(*) as count FROM invoices WHERE status = "approved"');
+    const [[totalProfit]] = await pool.query('SELECT SUM(profit) as value FROM production');
+    const [[totalCost]] = await pool.query('SELECT SUM(cost) as value FROM production');
+
     res.json({
-      totalProjects: projects[0].count,
-      totalBudgets: budgets[0].count,
-      totalAFEs: afes[0].count,
-      totalInvoices: invoices[0].count,
-      totalProfit: production[0].profit || 0
+      totalProjects: totalProjects.count,
+      totalBudgets: totalBudgets.count,
+      totalAFEs: totalAFEs.count,
+      totalInvoices: totalInvoices.count,
+      totalProfit: totalProfit.value || 0,
+      totalCost: totalCost.value || 0
     });
   } catch (e) {
-    res.status(500).send('❌ Failed to load dashboard metrics');
+    console.error(e);
+    res.status(500).send('Failed to load dashboard metrics');
   }
 });
 
@@ -712,6 +776,30 @@ app.post('/update-afe', isManager, async (req, res) => {
     res.status(500).send('❌ Failed to update AFE: ' + e.message);
   }
 });
+app.get('/admin/approved-invoices', isAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        i.id, i.invoice_title, i.invoice_date, i.amount, i.description,
+        i.file_path, i.invoice_number, i.vendor, i.user_department, i.contract_number,
+        i.approved_by, i.approved_at, i.submitted_by,
+        a.afe_title,
+        p.name AS project_name
+      FROM invoices i
+      JOIN afes a ON i.afe_id = a.id
+      JOIN budgets b ON a.budget_id = b.id
+      JOIN work_elements we ON b.work_element_id = we.id
+      JOIN tasks t ON we.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE i.status = 'approved'
+      ORDER BY i.approved_at DESC
+    `);
+    res.json(rows);
+  } catch (e) {
+    console.error('Error fetching approved invoices:', e);
+    res.status(500).send('Failed to load approved invoices');
+  }
+});
 
 // Approve or Decline an Invoice
 app.post('/update-invoice', isManager, async (req, res) => {
@@ -719,16 +807,54 @@ app.post('/update-invoice', isManager, async (req, res) => {
   if (!['approved', 'declined'].includes(status)) {
     return res.status(400).send('Invalid status');
   }
+
   try {
+    // Get invoice + AFE + Budget details
+    const [[invoice]] = await pool.query(`
+      SELECT i.id, i.amount, i.afe_id, a.budget_id, a.total_invoiced, a.cost_estimate
+      FROM invoices i
+      JOIN afes a ON i.afe_id = a.id
+      WHERE i.id = ?
+    `, [id]);
+
+    if (!invoice) return res.status(404).send('Invoice not found');
+
+    const { amount, afe_id, budget_id, total_invoiced, cost_estimate } = invoice;
+
+    // ✅ Optional: Prevent exceeding AFE estimate
+    if (status === 'approved' && total_invoiced + amount > cost_estimate) {
+      return res.status(400).send('Invoice exceeds AFE cost estimate');
+    }
+
+    // ✅ Mark invoice approved/declined
     await pool.query(
       'UPDATE invoices SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?',
       [status, req.session.user.username, id]
     );
+
+    if (status === 'approved') {
+      // ✅ Add amount to AFE's total_invoiced
+      await pool.query(`
+        UPDATE afes
+        SET total_invoiced = total_invoiced + ?
+        WHERE id = ?
+      `, [amount, afe_id]);
+
+      // ✅ Subtract amount from parent budget
+      await pool.query(`
+        UPDATE budgets
+        SET amount = amount - ?
+        WHERE id = ?
+      `, [amount, budget_id]);
+    }
+
     res.send(`✅ Invoice ${status}`);
   } catch (e) {
-    res.status(500).send('❌ Failed to update invoice: ' + e.message);
+    console.error('Invoice approval error:', e);
+    res.status(500).send('❌ Failed to update invoice');
   }
 });
+
 app.get('/pending-projects', isManager, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM projects WHERE status = "pending"');
   res.json(rows);
@@ -742,9 +868,26 @@ app.get('/pending-afes', isManager, async (req, res) => {
   res.json(rows);
 });
 app.get('/pending-invoices', isManager, async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM invoices WHERE status = "pending"');
-  res.json(rows);
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        i.id, i.invoice_title, i.invoice_date, i.amount, i.description,
+        i.file_path, i.status, i.submitted_by, i.invoice_number,
+        i.vendor, i.user_department, i.contract_number,
+        a.afe_title, a.description AS afe_description
+      FROM invoices i
+      JOIN afes a ON i.afe_id = a.id
+      WHERE i.status = 'pending'
+      ORDER BY i.created_at DESC
+    `);
+    res.json(rows);
+  } catch (e) {
+    console.error('Error fetching invoices:', e);
+    res.status(500).send('Failed to fetch invoices');
+  }
 });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 app.use((req, res) => res.status(404).send('Not Found'));
 

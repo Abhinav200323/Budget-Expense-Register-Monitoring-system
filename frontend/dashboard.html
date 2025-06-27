@@ -88,6 +88,7 @@
     <a href="#" onclick="showSection('dashboard')">Dashboard</a>
     <a href="#" onclick="showSection('approvedProjects')">Approved Projects</a>
     <a href="#" onclick="showSection('approvedBudgets')">Approved Budgets</a>
+    <a href="#" onclick="showSection('approvedInvoices')">Approved Invoices</a>
     <a href="#" onclick="showSection('productionData')">Production Records</a>
     <a href="#" onclick="showSection('addUser')">Add User</a>
     <a href="#" onclick="showSection('deleteUser')">Delete User</a>
@@ -101,7 +102,9 @@
 
     <section id="dashboard" class="section">
       <h3>System Metrics</h3>
-      <canvas id="chart" width="600" height="300"></canvas>
+     <canvas id="systemOverviewChart" width="600" height="300"></canvas>
+<h3>Profit vs Cost</h3>
+<canvas id="profitCostChart" width="600" height="300"></canvas>
     </section>
 
     <section id="approvedProjects" class="section">
@@ -135,6 +138,16 @@
       </form>
       <div id="productionResults"></div>
     </section>
+<section id="approvedInvoices" class="section">
+  <h3>Approved Invoices</h3>
+  <form id="invoiceFilterForm">
+    <label>Manager: <input type="text" name="manager"></label>
+    <label>From: <input type="date" name="from"></label>
+    <label>To: <input type="date" name="to"></label>
+    <button type="submit">Filter</button>
+  </form>
+  <div id="invoiceResults"></div>
+</section>
 
     <section id="addUser" class="section">
       <h3>Add New User</h3>
@@ -196,40 +209,93 @@
     }
 
     async function loadMetrics() {
-      const res = await fetch('/dashboard-metrics');
-      const data = await res.json();
-      const ctx = document.getElementById('chart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Projects', 'Budgets', 'AFEs', 'Invoices', 'Profit'],
-          datasets: [{
-            label: 'System Overview',
-            data: [data.totalProjects, data.totalBudgets, data.totalAFEs, data.totalInvoices, data.totalProfit],
-            backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#e91e63', '#9c27b0']
-          }]
+  const res = await fetch('/dashboard-metrics');
+  const data = await res.json();
+
+  // System Overview Chart
+  const ctxOverview = document.getElementById('systemOverviewChart').getContext('2d');
+  new Chart(ctxOverview, {
+    type: 'bar',
+    data: {
+      labels: ['Projects', 'Budgets', 'AFEs', 'Invoices'],
+      datasets: [{
+        label: 'Total Approved',
+        data: [
+          data.totalProjects,
+          data.totalBudgets,
+          data.totalAFEs,
+          data.totalInvoices
+        ],
+        backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#e91e63']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Approved Records Overview'
         }
-      });
+      }
     }
+  });
+
+  // Profit vs Cost Chart
+  const ctxProfit = document.getElementById('profitCostChart').getContext('2d');
+  new Chart(ctxProfit, {
+    type: 'bar',
+    data: {
+      labels: ['Profit', 'Cost'],
+      datasets: [{
+        label: 'USD',
+        data: [data.totalProfit, data.totalCost],
+        backgroundColor: ['#43a047', '#f44336']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Profit vs Cost Summary'
+        }
+      }
+    }
+  });
+}
+
+document.getElementById('invoiceFilterForm').addEventListener('submit', e => {
+  e.preventDefault();
+  fetchFilteredData('invoiceFilterForm', '/admin/approved-invoices', 'invoiceResults');
+});
 
     async function fetchFilteredData(formId, endpoint, resultDivId) {
-      const form = document.getElementById(formId);
-      const formData = new URLSearchParams(new FormData(form)).toString();
-      const res = await fetch(`${endpoint}?${formData}`);
-      const data = await res.json();
-      const container = document.getElementById(resultDivId);
-      if (!data.length) return container.innerHTML = '<p>No records found.</p>';
+  const form = document.getElementById(formId);
+  const formData = new URLSearchParams(new FormData(form)).toString();
+  const res = await fetch(`${endpoint}?${formData}`);
+  const data = await res.json();
+  const container = document.getElementById(resultDivId);
 
-      const columns = Object.keys(data[0]);
-      const table = document.createElement('table');
-      table.innerHTML = `
-        <thead><tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${data.map(row => `<tr>${columns.map(col => `<td>${row[col]}</td>`).join('')}</tr>`).join('')}
-        </tbody>`;
-      container.innerHTML = '';
-      container.appendChild(table);
-    }
+  if (!data.length) return container.innerHTML = '<p>No records found.</p>';
+
+  const columns = Object.keys(data[0]).filter(k => k !== 'file_path');
+  const table = document.createElement('table');
+  table.innerHTML = `
+    <thead><tr>${columns.map(col => `<th>${col}</th>`).join('')}<th>Invoice File</th></tr></thead>
+    <tbody>
+      ${data.map(row => `<tr>
+        ${columns.map(col => `<td>${row[col] ?? ''}</td>`).join('')}
+        <td>
+          ${row.file_path 
+            ? `<a href="/${row.file_path}" target="_blank">📎 View</a>` 
+            : 'No file'}
+        </td>
+      </tr>`).join('')}
+    </tbody>`;
+  container.innerHTML = '';
+  container.appendChild(table);
+}
+
     // ✅ Add User
 document.getElementById('addUserForm').addEventListener('submit', async (e) => {
   e.preventDefault();
