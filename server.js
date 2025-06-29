@@ -589,18 +589,13 @@ app.post('/submit-afe', checkAuth, async (req, res) => {
 
     await pool.query(`
     INSERT INTO afes 
-    (budget_id, afe_title, description, submitted_by, amount, activity_description, unit, quantity, unit_price)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (budget_id, title, submitted_by, amount)
+    VALUES (?, ?, ?, ?)`,
     [
       budget_id,
       afe_title,
-      description,
       req.session.user.username,
-      amount,
-      activity_description,
-      unit,
-      quantity,
-      unit_price
+      amount
     ]);
 
 
@@ -807,7 +802,7 @@ app.get('/admin/approved-invoices', isAdmin, async (req, res) => {
     const [rows] = await pool.query(`
       SELECT 
         i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
-        a.afe_title,
+        a.title AS afe_title,
         p.name AS project_name
       FROM invoices i
       JOIN afes a ON i.afe_id = a.id
@@ -896,7 +891,7 @@ app.get('/pending-invoices', isManager, async (req, res) => {
     const [rows] = await pool.query(`
       SELECT 
         i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
-        a.afe_title
+        a.title AS afe_title
       FROM invoices i
       JOIN afes a ON i.afe_id = a.id
       WHERE i.status = 'pending'
