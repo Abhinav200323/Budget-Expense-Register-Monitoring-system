@@ -11,10 +11,9 @@
     "test:integration": "jest tests/integration/",
     "test:coverage": "jest --coverage",
     "test:automated": "node run_automated_tests.js",
-    "test:simple": "node simple_test_suite.js",
+    "test:demo": "node demo_test.js",
     "test:comprehensive": "node comprehensive_test_suite.js",
-    "test:all": "npm run test && npm run test:automated",
-    "test:demo": "node test-runner.js"
+    "test:all": "npm run test && npm run test:automated"
   },
   "dependencies": {
     "express": "^4.18.2",
