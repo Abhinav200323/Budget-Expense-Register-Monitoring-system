@@ -1,0 +1,44 @@
+dn: ou=users,dc=testorg,dc=com
+objectClass: organizationalUnit
+ou: users
+
+dn: cn=users,ou=users,dc=testorg,dc=com
+objectClass: posixGroup
+cn: users
+gidNumber: 1000
+
+dn: uid=adminuser,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: adminuser
+sn: User
+cn: Admin User
+uidNumber: 1001
+gidNumber: 1000
+homeDirectory: /home/adminuser
+loginShell: /bin/bash
+userPassword: admin123
+
+dn: uid=manager1,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: manager1
+sn: Manager
+cn: Manager One
+uidNumber: 1002
+gidNumber: 1000
+homeDirectory: /home/manager1
+loginShell: /bin/bash
+userPassword: password123
+
+dn: uid=user1,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: user1
+sn: User
+cn: User One
+uidNumber: 1003
+gidNumber: 1000
+homeDirectory: /home/user1
+loginShell: /bin/bash
+userPassword: password123

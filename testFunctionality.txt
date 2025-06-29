@@ -1,0 +1,764 @@
+# BER Project - Comprehensive Testing & Functionality Guide
+
+## Table of Contents
+1. [System Overview](#system-overview)
+2. [Prerequisites & Setup](#prerequisites--setup)
+3. [User Management](#user-management)
+4. [Authentication Testing](#authentication-testing)
+5. [Project Management Testing](#project-management-testing)
+6. [Budget Management Testing](#budget-management-testing)
+7. [Production Data Testing](#production-data-testing)
+8. [Budget Change Request (BCR) Testing](#budget-change-request-bcr-testing)
+9. [AFE (Authorization for Expenditure) Testing](#afe-authorization-for-expenditure-testing)
+10. [Invoice Management Testing](#invoice-management-testing)
+11. [Admin Reporting Testing](#admin-reporting-testing)
+12. [End-to-End Workflow Testing](#end-to-end-workflow-testing)
+13. [Error Handling & Edge Cases](#error-handling--edge-cases)
+14. [Performance Testing](#performance-testing)
+15. [Security Testing](#security-testing)
+
+---
+
+## System Overview
+
+The BER (Budget, Expense, and Resource) application is a comprehensive project management system with the following key components:
+
+- **Authentication**: OpenLDAP-based user authentication with role-based access control
+- **Database**: MySQL for data persistence with proper relationships and constraints
+- **Backend**: Node.js/Express.js RESTful API with middleware for authorization
+- **Frontend**: HTML5/CSS3/JavaScript with Bootstrap for responsive design
+- **Containerization**: Docker for consistent deployment across environments
+
+### User Roles & Permissions
+- **User**: Create projects, submit budgets, request changes, submit production data
+- **Manager**: Approve projects, budgets, and budget change requests
+- **Admin**: View comprehensive reports, audit trails, and system-wide data
+
+---
+
+## Prerequisites & Setup
+
+### 1. System Requirements
+- Docker Desktop installed and running
+- Node.js (v14 or higher)
+- MySQL (via XAMPP or Docker)
+- Modern web browser
+
+### 2. Application Startup
+```bash
+# Start Docker containers
+docker-compose up -d
+
+# Install Node.js dependencies
+npm install
+
+# Start the application
+npm start
+```
+
+### 3. Verify Services
+- **Application**: http://localhost:3000
+- **LDAP Admin**: http://localhost:8080 (phpLDAPadmin)
+- **Database**: MySQL on port 3307 (XAMPP) or 3306 (Docker)
+
+---
+
+## User Management
+
+### Default User Credentials
+| Username | Password | Role | Purpose |
+|----------|----------|------|---------|
+| `adminuser` | `admin123` | Admin | System administration |
+| `manager1` | `password123` | Manager | Project/budget approval |
+| `user1` | `password123` | User | Project creation and submission |
+
+### Adding New Users (if needed)
+```bash
+# Create manager user
+docker exec openldap-ber ldapadd -x -D "cn=admin,dc=testorg,dc=com" -w admin123 -f /tmp/manager.ldif
+
+# Create standard user
+docker exec openldap-ber ldapadd -x -D "cn=admin,dc=testorg,dc=com" -w admin123 -f /tmp/user.ldif
+```
+
+---
+
+## Authentication Testing
+
+### Test Case 1: Valid User Login
+**Objective**: Verify successful authentication for all user roles
+
+**Steps**:
+1. Navigate to http://localhost:3000
+2. Login with `adminuser` / `admin123`
+3. Verify redirect to admin dashboard
+4. Logout and repeat with `manager1` / `password123`
+5. Verify redirect to manager dashboard
+6. Logout and repeat with `user1` / `password123`
+7. Verify redirect to user dashboard
+
+**Expected Results**:
+- ✅ Successful login for all users
+- ✅ Correct dashboard access based on role
+- ✅ Session persistence during navigation
+
+### Test Case 2: Invalid Credentials
+**Objective**: Verify authentication failure handling
+
+**Steps**:
+1. Attempt login with invalid username/password
+2. Test with empty credentials
+3. Test with special characters in credentials
+
+**Expected Results**:
+- ❌ Login failure with appropriate error message
+- ❌ No session creation
+- ❌ Redirect to login page
+
+### Test Case 3: Session Management
+**Objective**: Verify session timeout and logout functionality
+
+**Steps**:
+1. Login successfully
+2. Close browser and reopen
+3. Navigate to protected page
+4. Test logout functionality
+
+**Expected Results**:
+- ✅ Session maintained during browser session
+- ❌ Session cleared after logout
+- ❌ Access denied to protected pages after logout
+
+---
+
+## Project Management Testing
+
+### Test Case 4: Project Creation
+**Objective**: Verify project creation workflow
+
+**Sample Data**:
+```
+Project Name: "Eagle Ridge Development"
+Description: "Oil and gas exploration project in Eagle Ridge basin"
+Location: "Alberta, Canada"
+Start Date: "2024-01-15"
+End Date: "2024-12-31"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Navigate to "Submit Project" section
+3. Fill in project details with sample data
+4. Submit project
+5. Verify project appears in "My Projects" list
+6. Check project status shows "Pending"
+
+**Expected Results**:
+- ✅ Project created successfully
+- ✅ Data validation working
+- ✅ Project appears in user's project list
+- ✅ Status correctly set to "Pending"
+
+### Test Case 5: Project Approval Workflow
+**Objective**: Verify manager approval process
+
+**Steps**:
+1. Login as `manager1`
+2. Navigate to project approval queue
+3. Review pending project details
+4. Approve "Eagle Ridge Development"
+5. Logout and login as `user1`
+6. Verify project status changed to "Approved"
+
+**Expected Results**:
+- ✅ Manager can view pending projects
+- ✅ Approval action updates project status
+- ✅ User can see approved status
+- ✅ Audit trail maintained
+
+### Test Case 6: Task Creation
+**Objective**: Verify task management within projects
+
+**Sample Data**:
+```
+Task Name: "Seismic Survey"
+Description: "Conduct 3D seismic survey of target area"
+Duration: "3 months"
+Priority: "High"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Select approved project "Eagle Ridge Development"
+3. Add new task with sample data
+4. Verify task appears in project task list
+5. Test task editing functionality
+
+**Expected Results**:
+- ✅ Task created successfully
+- ✅ Task associated with correct project
+- ✅ Task details editable
+- ✅ Validation working for required fields
+
+---
+
+## Budget Management Testing
+
+### Test Case 7: Budget Submission
+**Objective**: Verify budget creation and submission
+
+**Sample Data**:
+```
+Work Element: "Survey Equipment Setup"
+Budget Amount: $150,000
+Description: "Equipment and personnel for seismic survey"
+Currency: "CAD"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Select approved project and task
+3. Create work element with sample data
+4. Submit budget for work element
+5. Verify budget appears in pending budgets
+6. Check budget calculations and validation
+
+**Expected Results**:
+- ✅ Budget submitted successfully
+- ✅ Amount validation working
+- ✅ Budget associated with correct work element
+- ✅ Status set to "Pending"
+
+### Test Case 8: Budget Approval
+**Objective**: Verify manager budget approval process
+
+**Steps**:
+1. Login as `manager1`
+2. Navigate to budget approval queue
+3. Review pending budget details
+4. Approve budget for "Survey Equipment Setup"
+5. Verify budget status updated
+
+**Expected Results**:
+- ✅ Manager can view pending budgets
+- ✅ Approval updates budget status
+- ✅ Budget available for project execution
+- ✅ Audit trail maintained
+
+### Test Case 9: Budget Validation
+**Objective**: Verify budget calculation accuracy
+
+**Test Scenarios**:
+1. Submit budget with zero amount
+2. Submit budget with negative amount
+3. Submit budget with very large amount
+4. Submit budget with decimal values
+
+**Expected Results**:
+- ❌ Zero amount rejected
+- ❌ Negative amount rejected
+- ✅ Large amount accepted (with validation)
+- ✅ Decimal values handled correctly
+
+---
+
+## Production Data Testing
+
+### Test Case 10: Production Data Submission
+**Objective**: Verify production data entry and calculations
+
+**Sample Data**:
+```
+Project: "Eagle Ridge Development"
+Task: "Seismic Survey"
+Work Element: "Survey Equipment Setup"
+Barrels Produced: 2,500
+Price per Barrel: $75.50
+Production Date: "2024-03-15"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Navigate to "Submit Production" section
+3. Select project, task, and work element
+4. Enter production data
+5. Verify automatic calculations
+6. Submit production data
+
+**Expected Results**:
+- ✅ Production data submitted successfully
+- ✅ Revenue calculated correctly (2,500 × $75.50 = $188,750)
+- ✅ Data validation working
+- ✅ Production data stored in database
+
+### Test Case 11: Production Data Validation
+**Objective**: Verify data validation and error handling
+
+**Test Scenarios**:
+1. Submit with zero barrels
+2. Submit with negative price
+3. Submit with future date
+4. Submit with missing required fields
+
+**Expected Results**:
+- ❌ Zero barrels rejected
+- ❌ Negative price rejected
+- ❌ Future date rejected
+- ❌ Missing fields rejected with error messages
+
+---
+
+## Budget Change Request (BCR) Testing
+
+### Test Case 12: BCR Creation
+**Objective**: Verify budget change request workflow
+
+**Sample Data**:
+```
+BCR Number: "BCR-2024-001"
+From Project: "Eagle Ridge Development"
+From Work Element: "Survey Equipment Setup"
+To Project: "Eagle Ridge Development"
+To Work Element: "Data Processing"
+Transfer Amount: $25,000
+Reason: "Additional data processing requirements"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Navigate to "Submit Budget Change" section
+3. Fill in BCR details with sample data
+4. Submit BCR
+5. Verify BCR appears in pending changes
+
+**Expected Results**:
+- ✅ BCR created successfully
+- ✅ Transfer amount validation working
+- ✅ Source and destination validation
+- ✅ BCR status set to "Pending"
+
+### Test Case 13: BCR Approval
+**Objective**: Verify manager BCR approval process
+
+**Steps**:
+1. Login as `manager1`
+2. Navigate to "Pending Budget Changes"
+3. Review BCR-2024-001 details
+4. Approve the BCR
+5. Verify budget transfers completed
+
+**Expected Results**:
+- ✅ Manager can view pending BCRs
+- ✅ Approval processes budget transfer
+- ✅ Source budget reduced by $25,000
+- ✅ Destination budget increased by $25,000
+- ✅ Audit trail maintained
+
+### Test Case 14: BCR Validation
+**Objective**: Verify BCR business rules
+
+**Test Scenarios**:
+1. Transfer more than available budget
+2. Transfer to same work element
+3. Transfer zero amount
+4. Transfer negative amount
+
+**Expected Results**:
+- ❌ Insufficient funds rejected
+- ❌ Same work element transfer rejected
+- ❌ Zero amount rejected
+- ❌ Negative amount rejected
+
+---
+
+## AFE (Authorization for Expenditure) Testing
+
+### Test Case 15: AFE Creation
+**Objective**: Verify AFE workflow
+
+**Sample Data**:
+```
+AFE Number: "AFE-2024-001"
+Project: "Eagle Ridge Development"
+Description: "Authorization for additional drilling equipment"
+Amount: $500,000
+Justification: "Increased drilling requirements for Phase 2"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Navigate to "Submit AFE" section
+3. Fill in AFE details
+4. Submit AFE
+5. Verify AFE in pending queue
+
+**Expected Results**:
+- ✅ AFE created successfully
+- ✅ Amount validation working
+- ✅ AFE associated with correct project
+- ✅ Status set to "Pending"
+
+### Test Case 16: AFE Approval
+**Objective**: Verify AFE approval process
+
+**Steps**:
+1. Login as `manager1`
+2. Navigate to AFE approval queue
+3. Review AFE-2024-001
+4. Approve AFE
+5. Verify AFE status updated
+
+**Expected Results**:
+- ✅ Manager can approve AFEs
+- ✅ Approval updates AFE status
+- ✅ AFE available for project use
+- ✅ Audit trail maintained
+
+---
+
+## Invoice Management Testing
+
+### Test Case 17: Invoice Creation
+**Objective**: Verify invoice management
+
+**Sample Data**:
+```
+Invoice Number: "INV-2024-001"
+Vendor: "Seismic Equipment Co."
+Project: "Eagle Ridge Development"
+Amount: $45,000
+Description: "Seismic equipment rental"
+Due Date: "2024-04-15"
+```
+
+**Steps**:
+1. Login as `user1`
+2. Navigate to "Submit Invoice" section
+3. Fill in invoice details
+4. Submit invoice
+5. Verify invoice in pending queue
+
+**Expected Results**:
+- ✅ Invoice created successfully
+- ✅ Amount validation working
+- ✅ Invoice associated with project
+- ✅ Status set to "Pending"
+
+### Test Case 18: Invoice Approval
+**Objective**: Verify invoice approval process
+
+**Steps**:
+1. Login as `manager1`
+2. Navigate to invoice approval queue
+3. Review INV-2024-001
+4. Approve invoice
+5. Verify invoice status updated
+
+**Expected Results**:
+- ✅ Manager can approve invoices
+- ✅ Approval updates invoice status
+- ✅ Invoice marked as approved
+- ✅ Audit trail maintained
+
+---
+
+## Admin Reporting Testing
+
+### Test Case 19: Approved Projects Report
+**Objective**: Verify admin project reporting
+
+**Steps**:
+1. Login as `adminuser`
+2. Navigate to "Admin → Approved Projects"
+3. Verify all approved projects visible
+4. Test date range filters
+5. Test manager filters
+6. Export report data
+
+**Expected Results**:
+- ✅ All approved projects displayed
+- ✅ Filters working correctly
+- ✅ Data export functionality
+- ✅ Proper data formatting
+
+### Test Case 20: Approved Budgets Report
+**Objective**: Verify admin budget reporting
+
+**Steps**:
+1. Navigate to "Admin → Approved Budgets"
+2. Verify all approved budgets visible
+3. Check budget amounts and transfers
+4. Test filtering by project/manager
+5. Verify calculations accuracy
+
+**Expected Results**:
+- ✅ All approved budgets displayed
+- ✅ Transfer amounts reflected correctly
+- ✅ Filters working properly
+- ✅ Calculations mathematically accurate
+
+### Test Case 21: Production Data Report
+**Objective**: Verify production reporting
+
+**Steps**:
+1. Navigate to "Admin → Production Data"
+2. Verify production entries visible
+3. Check revenue calculations
+4. Test date range filters
+5. Export production data
+
+**Expected Results**:
+- ✅ All production data displayed
+- ✅ Revenue calculations correct
+- ✅ Date filters working
+- ✅ Export functionality available
+
+### Test Case 22: Budget Changes Report
+**Objective**: Verify BCR reporting
+
+**Steps**:
+1. Navigate to "Admin → Budget Changes"
+2. Verify all BCRs visible
+3. Check transfer details
+4. Test status filters
+5. Verify audit trail
+
+**Expected Results**:
+- ✅ All BCRs displayed with details
+- ✅ Transfer amounts and directions clear
+- ✅ Status filters working
+- ✅ Complete audit trail maintained
+
+---
+
+## End-to-End Workflow Testing
+
+### Test Case 23: Complete Project Lifecycle
+**Objective**: Verify complete workflow from project creation to reporting
+
+**Comprehensive Test Scenario**:
+
+#### Phase 1: Project Setup (User Role)
+1. Login as `user1`
+2. Create project "Comprehensive Test Project"
+3. Add task "Phase 1 Development"
+4. Create work element "Equipment Setup"
+5. Submit budget $200,000
+6. Create work element "Personnel"
+7. Submit budget $150,000
+8. Logout
+
+#### Phase 2: Approval Process (Manager Role)
+1. Login as `manager1`
+2. Approve "Comprehensive Test Project"
+3. Approve both budgets ($200,000 + $150,000)
+4. Logout
+
+#### Phase 3: Execution (User Role)
+1. Login as `user1`
+2. Submit production data: 3,000 barrels at $80/barrel
+3. Create BCR to transfer $50,000 from Equipment to Personnel
+4. Submit AFE for additional $100,000
+5. Submit invoice for $75,000
+6. Logout
+
+#### Phase 4: Final Approval (Manager Role)
+1. Login as `manager1`
+2. Approve BCR transfer
+3. Approve AFE
+4. Approve invoice
+5. Logout
+
+#### Phase 5: Verification (Admin Role)
+1. Login as `adminuser`
+2. Verify all reports show correct data
+3. Check final budget allocations
+4. Verify production revenue
+5. Confirm audit trail completeness
+
+**Expected Results**:
+- ✅ Complete workflow functions end-to-end
+- ✅ All approvals processed correctly
+- ✅ Budget transfers calculated accurately
+- ✅ Production data recorded properly
+- ✅ All reports show consistent data
+- ✅ Audit trail maintained throughout
+
+---
+
+## Error Handling & Edge Cases
+
+### Test Case 24: Database Connection Failures
+**Objective**: Verify graceful handling of database errors
+
+**Steps**:
+1. Stop MySQL service
+2. Attempt to submit project/budget
+3. Verify appropriate error message
+4. Restart MySQL service
+5. Verify application recovery
+
+**Expected Results**:
+- ❌ Graceful error handling
+- ✅ User-friendly error messages
+- ✅ Application remains stable
+- ✅ Recovery after service restart
+
+### Test Case 25: LDAP Connection Failures
+**Objective**: Verify authentication error handling
+
+**Steps**:
+1. Stop OpenLDAP container
+2. Attempt user login
+3. Verify appropriate error message
+4. Restart OpenLDAP container
+5. Verify authentication recovery
+
+**Expected Results**:
+- ❌ Graceful authentication failure
+- ✅ Clear error messages
+- ✅ Application stability maintained
+- ✅ Authentication recovery after restart
+
+### Test Case 26: Input Validation
+**Objective**: Verify comprehensive input validation
+
+**Test Scenarios**:
+1. SQL injection attempts
+2. XSS script injection
+3. Very long input strings
+4. Special characters in inputs
+5. Unicode characters
+
+**Expected Results**:
+- ❌ SQL injection blocked
+- ❌ XSS attacks prevented
+- ❌ Input length limits enforced
+- ✅ Special characters handled properly
+- ✅ Unicode support working
+
+---
+
+## Performance Testing
+
+### Test Case 27: Load Testing
+**Objective**: Verify application performance under load
+
+**Steps**:
+1. Create 50 test projects
+2. Submit 100 budgets
+3. Generate 200 production entries
+4. Monitor response times
+5. Check memory usage
+
+**Expected Results**:
+- ✅ Response times under 2 seconds
+- ✅ Memory usage stable
+- ✅ No data corruption
+- ✅ Database performance acceptable
+
+### Test Case 28: Concurrent User Testing
+**Objective**: Verify multi-user functionality
+
+**Steps**:
+1. Open multiple browser sessions
+2. Login different users simultaneously
+3. Perform concurrent operations
+4. Verify data consistency
+5. Check session isolation
+
+**Expected Results**:
+- ✅ Concurrent users supported
+- ✅ Data consistency maintained
+- ✅ Session isolation working
+- ✅ No conflicts between users
+
+---
+
+## Security Testing
+
+### Test Case 29: Authorization Testing
+**Objective**: Verify role-based access control
+
+**Steps**:
+1. Login as `user1`
+2. Attempt to access manager pages
+3. Attempt to access admin pages
+4. Verify access denied
+5. Repeat with other user roles
+
+**Expected Results**:
+- ❌ Unauthorized access blocked
+- ✅ Appropriate error messages
+- ✅ Role-based restrictions enforced
+- ✅ Session security maintained
+
+### Test Case 30: Session Security
+**Objective**: Verify session management security
+
+**Steps**:
+1. Login successfully
+2. Modify session cookie
+3. Attempt to access protected pages
+4. Test session timeout
+5. Verify logout security
+
+**Expected Results**:
+- ❌ Modified sessions rejected
+- ✅ Session timeout working
+- ✅ Secure logout process
+- ✅ Session data protected
+
+---
+
+## Test Execution Summary
+
+### Automated Test Suite
+```bash
+# Run comprehensive test suite
+npm test
+
+# Run specific test categories
+npm run test:unit
+npm run test:integration
+npm run test:coverage
+
+# Run test runner with explanations
+node test-runner.js
+```
+
+### Manual Test Checklist
+- [ ] Authentication testing completed
+- [ ] Project management workflow tested
+- [ ] Budget management verified
+- [ ] Production data entry tested
+- [ ] BCR workflow validated
+- [ ] AFE process tested
+- [ ] Invoice management verified
+- [ ] Admin reporting tested
+- [ ] End-to-end workflow completed
+- [ ] Error handling verified
+- [ ] Performance testing completed
+- [ ] Security testing validated
+
+### Test Results Documentation
+Document all test results including:
+- Pass/fail status for each test case
+- Screenshots of key functionality
+- Error messages and resolutions
+- Performance metrics
+- Security validation results
+
+---
+
+## Conclusion
+
+This comprehensive testing guide ensures thorough validation of all BER application functionality. The testing approach covers:
+
+1. **Functional Testing**: All user workflows and business processes
+2. **Integration Testing**: End-to-end system validation
+3. **Performance Testing**: Load and concurrent user scenarios
+4. **Security Testing**: Authentication and authorization validation
+5. **Error Handling**: Graceful failure and recovery scenarios
+
+Regular execution of this test suite ensures application reliability, data integrity, and user experience quality. All test cases should be executed before any production deployment or major feature releases. 

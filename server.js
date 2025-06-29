@@ -28,8 +28,9 @@ const upload = multer({ dest: path.join(__dirname, 'uploads/') });
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: '231203',
-  database: 'ber',
+  password: '',
+  database: 'ber_db',
+  port: 3307,
 });
 
 function checkAuth(req, res, next) {
@@ -299,8 +300,20 @@ app.post('/login', (req, res, next) => {
   const { username, password } = req.body;
 
   ldap.authenticate(username, password, async (err, user) => {
-    if (err || !user) {
+    if (err) {
+      console.error("LDAP authentication error:", err);
+      // Return JSON for API clients
+      if (req.headers.accept && req.headers.accept.includes('application/json') || req.xhr) {
+        return res.status(401).json({ success: false, error: 'LDAP auth failed' });
+      }
       return res.status(401).send('LDAP auth failed');
+    }
+    if (!user) {
+      console.error("LDAP authentication failed for user:", username);
+      if (req.headers.accept && req.headers.accept.includes('application/json') || req.xhr) {
+        return res.status(401).json({ success: false, error: 'LDAP auth failed: Invalid credentials' });
+      }
+      return res.status(401).send('LDAP auth failed: Invalid credentials');
     }
 
     try {
@@ -310,13 +323,26 @@ app.post('/login', (req, res, next) => {
       );
 
       if (!rows.length) {
+        console.error("User not found in DB:", username);
+        if (req.headers.accept && req.headers.accept.includes('application/json') || req.xhr) {
+          return res.status(404).json({ success: false, error: 'User not found in DB' });
+        }
         return res.status(404).send('User not found in DB');
       }
 
       req.session.user = { username, role: rows[0].role };
-      return res.redirect('/');          // ← return stops execution
+      console.log("User logged in successfully:", username, "with role:", rows[0].role);
+      // Return JSON for API clients
+      if (req.headers.accept && req.headers.accept.includes('application/json') || req.xhr) {
+        return res.json({ success: true, user: { username, role: rows[0].role } });
+      }
+      return res.redirect('/');
     } catch (e) {
-      return next(e);                    // single unified error path
+      console.error("Database error during login for user:", username, e);
+      if (req.headers.accept && req.headers.accept.includes('application/json') || req.xhr) {
+        return res.status(500).json({ success: false, error: 'Database error' });
+      }
+      return next(e);
     }
   });
 });
@@ -570,7 +596,7 @@ app.post('/submit-afe', checkAuth, async (req, res) => {
       afe_title,
       description,
       req.session.user.username,
-+     amount,                    // ✅ fix
+      amount,
       activity_description,
       unit,
       quantity,
@@ -780,9 +806,7 @@ app.get('/admin/approved-invoices', isAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        i.id, i.invoice_title, i.invoice_date, i.amount, i.description,
-        i.file_path, i.invoice_number, i.vendor, i.user_department, i.contract_number,
-        i.approved_by, i.approved_at, i.submitted_by,
+        i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
         a.afe_title,
         p.name AS project_name
       FROM invoices i
@@ -871,10 +895,8 @@ app.get('/pending-invoices', isManager, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        i.id, i.invoice_title, i.invoice_date, i.amount, i.description,
-        i.file_path, i.status, i.submitted_by, i.invoice_number,
-        i.vendor, i.user_department, i.contract_number,
-        a.afe_title, a.description AS afe_description
+        i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
+        a.afe_title
       FROM invoices i
       JOIN afes a ON i.afe_id = a.id
       WHERE i.status = 'pending'
@@ -890,5 +912,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 app.use((req, res) => res.status(404).send('Not Found'));
+
+process.on('uncaughtException', (err) => {
+  console.error('There was an uncaught error', err);
+  process.exit(1);
+});
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

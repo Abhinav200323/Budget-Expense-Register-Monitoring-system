@@ -108,71 +108,72 @@
     <div id="budgetSection" class="section">
       <h2>Submit Budget</h2>
       <form id="budgetForm">
-<label>Select Approved Project:
-  <select id="budgetProjectSelect" onchange="loadApprovedTasks(this.value, 'budgetTaskSelect')"></select>
-</label>
-<label>Select Task:
-  <select id="budgetTaskSelect" onchange="loadApprovedWorkElements(this.value, 'budgetWorkElementSelect')"></select>
-</label>
-<label>Select Work Element:
-  <select name="work_element_id" id="budgetWorkElementSelect" required></select>
-</label>
+        <label>Select Approved Project:
+          <select id="budgetProjectSelect" onchange="loadApprovedTasks(this.value, 'budgetTaskSelect')"></select>
+        </label>
+        <label>Select Task:
+          <select id="budgetTaskSelect" onchange="loadApprovedWorkElements(this.value, 'budgetWorkElementSelect')"></select>
+        </label>
+        <label>Select Work Element:
+          <select name="work_element_id" id="budgetWorkElementSelect" required>
+            <option value="">Select task first</option>
+          </select>
         </label>
         <label>Amount: <input name="amount" required></label>
         <label>Description: <input name="description" required></label>
         <button type="submit">Submit Budget</button>
       </form>
     </div>
-<div id="budgetChangeSection" class="section">
-  <h2>Budget Change Request</h2>
+    <div id="budgetChangeSection" class="section">
+      <h2>Budget Change Request</h2>
 
-  <div style="background:#e6f2ff;padding:12px;border-left:5px solid #007BFF;margin-bottom:15px;">
-    <strong>Budget Change Policy:</strong><br>
-    Budget can be transferred from one work element item to another or from work element items to another task’s work element item.<br><br>
-    <strong>If within the same task’s work element:</strong> include <em>Budget ID</em>, <em>Budget Name</em>, <em>Date</em>, <em>Amount</em>, and <strong>BCR Approval Number</strong> (generated).<br>
-    <strong>If across different projects:</strong> attach respective details along with the <strong>BCR Approval Number</strong>.
-  </div>
+      <div style="background:#e6f2ff;padding:12px;border-left:5px solid #007BFF;margin-bottom:15px;">
+        <strong>Budget Change Policy:</strong><br>
+        Budget can be transferred from one work element item to another or from work element items to another task's work element item.<br><br>
+        <strong>If within the same task's work element:</strong> include <em>Budget ID</em>, <em>Budget Name</em>, <em>Date</em>, <em>Amount</em>, and <strong>BCR Approval Number</strong> (generated).<br>
+        <strong>If across different projects:</strong> attach respective details along with the <strong>BCR Approval Number</strong>.
+      </div>
 
-  <form id="budgetChangeForm">
-    <label>Source Project:
-      <select id="sourceProjectSelect" name="source_project_id" required></select>
-    </label>
+      <form id="budgetChangeForm">
+        <label>Source Project:
+          <select id="sourceProjectSelect" name="source_project_id" required></select>
+        </label>
 
-    <label>Source Work Element:
-      <select id="sourceWorkElementSelect" name="source_work_element_id" required></select>
-    </label>
+        <label>Source Work Element:
+          <select id="sourceWorkElementSelect" name="source_work_element_id" required></select>
+        </label>
 
-    <label>Budget ID:
-      <input type="number" name="source_budget_id" required>
-    </label>
+        <label>Budget ID:
+          <input type="number" name="source_budget_id" required>
+        </label>
 
-    <label>Budget Name:
-      <input type="text" name="source_budget_name" required>
-    </label>
+        <label>Budget Name:
+          <input type="text" name="source_budget_name" required>
+        </label>
 
-    <label>Destination Project:
-      <select id="destinationProjectSelect" name="destination_project_id" required></select>
-    </label>
+        <label>Destination Project:
+          <select id="destinationProjectSelect" name="destination_project_id" required></select>
+        </label>
 
-    <label>Destination Work Element:
-      <select id="destinationWorkElementSelect" name="destination_work_element_id" required></select>
-    </label>
+        <label>Destination Work Element:
+          <select id="destinationWorkElementSelect" name="destination_work_element_id" required></select>
+        </label>
 
-    <label>Amount:
-      <input type="number" name="transfer_amount" step="0.01" required>
-    </label>
+        <label>Amount:
+          <input type="number" name="transfer_amount" step="0.01" required>
+        </label>
 
-    <label>Transfer Date:
-      <input type="date" name="transfer_date" required>
-    </label>
+        <label>Transfer Date:
+          <input type="date" name="transfer_date" required>
+        </label>
 
-    <label>BCR Approval Number:
-      <input type="text" name="bcr_number" id="bcrAuto" readonly required>
-    </label>
+        <label>BCR Approval Number:
+          <input type="text" name="bcr_number" id="bcrAuto" readonly required>
+        </label>
 
-    <button type="submit">Submit Budget Change</button>
-  </form>
-</div>
+        <button type="submit">Submit Budget Change</button>
+      </form>
+    </div>
 
     <!-- AFE Section -->
     <div id="afeSection" class="section">
@@ -228,55 +229,46 @@
     </div>
 
     <!-- Invoice Section -->
-<!-- Invoice Section -->
-<div id="invoiceSection" class="section">
-  <h2>Submit Invoice</h2>
-  <form id="invoiceForm" enctype="multipart/form-data">
- <label>Select Approved Project:
-  <select id="invoiceProjectSelect" onchange="loadApprovedTasks(this.value, 'invoiceTaskSelect')" required></select>
-</label>
+    <div id="invoiceSection" class="section">
+      <h2>Submit Invoice</h2>
+      <form id="invoiceForm" enctype="multipart/form-data">
+        <label>Select Approved Project:
+          <select id="invoiceProjectSelect" onchange="loadApprovedTasks(this.value, 'invoiceTaskSelect')" required></select>
+        </label>
 
-<label>Select Task:
-  <select id="invoiceTaskSelect" onchange="loadApprovedWorkElements(this.value, 'invoiceWESelect')" required></select>
-</label>
+        <label>Select Task:
+          <select id="invoiceTaskSelect" onchange="loadApprovedWorkElements(this.value, 'invoiceWESelect')" required></select>
+        </label>
 
-<label>Select Work Element:
-<select id="invoiceWESelect" onchange="loadBudgets(this.value, 'invoiceBudgetSelect')" required></select>
-</label>
-<label>Select Approved Budget:
-  <select name="budget_id" id="invoiceBudgetSelect" required></select>
-</label>
+        <label>Select Work Element:
+          <select id="invoiceWESelect" onchange="loadBudgets(this.value, 'invoiceBudgetSelect')" required></select>
+        </label>
+        <label>Select Approved Budget:
+          <select name="budget_id" id="invoiceBudgetSelect" required></select>
+        </label>
 
+        <label>Invoice Title: <input name="invoice_title" required></label>
+        <label>Invoice Date: <input type="date" name="invoice_date" required></label>
+        <label>Amount: <input name="amount" type="number" step="0.01" required></label>
+        <label>Description: <input name="description" required></label>
+        <label>Invoice File: <input name="invoice_file" type="file" required></label>
+        <label>Invoice Number: <input type="text" name="invoice_number" required></label>
+        <label>Vendor: <input type="text" name="vendor" required></label>
+        <label>User Department: <input type="text" name="user_department" required></label>
+        <label>Contract Number: <input type="text" name="contract_number" required></label>
 
+        <button type="submit">Submit Invoice</button>
 
-    <label>Invoice Title: <input name="invoice_title" required></label>
-    <label>Invoice Date: <input type="date" name="invoice_date" required></label>
-    <label>Amount: <input name="amount" type="number" step="0.01" required></label>
-    <label>Description: <input name="description" required></label>
-    <label>Invoice File: <input name="invoice_file" type="file" required></label>
-    <label>Invoice Number: <input type="text" name="invoice_number" required></label>
-    <label>Vendor: <input type="text" name="vendor" required></label>
-    <label>User Department: <input type="text" name="user_department" required></label>
-    <label>Contract Number: <input type="text" name="contract_number" required></label>
-
-    <button type="submit">Submit Invoice</button>
-
-  </form>
-</div>
-
-
-
-
-
-<!-- keep file upload + AFE selector as you already have -->
+      </form>
+    </div>
 
     <!-- Production Section -->
     <div id="productionSection" class="section">
       <h2>Enter Production Data</h2>
       <form id="productionForm">
-<label>Select Approved Project:
-  <select name="project_id" id="productionProjectSelect" required></select>
-</label>
+        <label>Select Approved Project:
+          <select name="project_id" id="productionProjectSelect" required></select>
+        </label>
         <label>Price/Barrel: <input name="price_per_barrel" required></label>
         <label>Number of Barrels: <input name="number_of_barrels" required></label>
         <label>Cost: <input name="cost" required></label>
@@ -299,102 +291,148 @@
     location.href = '/login.html';
   }
 
- async function getUser() {
-  const res = await fetch('/user');
-  const user = await res.json();
-  document.getElementById('username').innerText = user.username;
-  document.getElementById('role').innerText = user.role;
+  async function getUser() {
+    const res = await fetch('/user');
+    const user = await res.json();
+    document.getElementById('username').innerText = user.username;
+    document.getElementById('role').innerText = user.role;
 
-  const projectRes = await fetch('/my-projects');
-  const projects = await projectRes.json();
+    const projectRes = await fetch('/my-projects');
+    const projects = await projectRes.json();
 
-  const taskSelect = document.getElementById('taskProjectSelect');
-  const weSelect = document.getElementById('weProjectSelect');
-  const projectTable = document.querySelector('#projectTable tbody');
+    const taskSelect = document.getElementById('taskProjectSelect');
+    const weSelect = document.getElementById('weProjectSelect');
+    const projectTable = document.querySelector('#projectTable tbody');
 
-  taskSelect.innerHTML = '';
-  weSelect.innerHTML = '';
-  projectTable.innerHTML = '';
+    taskSelect.innerHTML = '';
+    weSelect.innerHTML = '';
+    projectTable.innerHTML = '';
 
-  const allProjectDropdowns = [
-    'budgetProjectSelect',
-    'afeProjectSelect',
-    'invoiceProjectSelect',
-    'productionProjectSelect'
-  ];
+    const allProjectDropdowns = [
+      'budgetProjectSelect',
+      'afeProjectSelect',
+      'invoiceProjectSelect',
+      'productionProjectSelect'
+    ];
 
-  if (projects.length === 0) {
-    projectTable.innerHTML = '<tr><td colspan="3">No projects submitted yet.</td></tr>';
+    if (projects.length === 0) {
+      projectTable.innerHTML = '<tr><td colspan="3">No projects submitted yet.</td></tr>';
+    }
+
+    projects.forEach(p => {
+      const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.status}</td></tr>`;
+      projectTable.innerHTML += row;
+
+      if (p.status === 'approved') {
+        taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+        weSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      }
+    });
+
+    // Populate dropdowns for other forms
+    allProjectDropdowns.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = projects
+          .filter(p => p.status === 'approved')
+          .map(p => `<option value="${p.id}">${p.name}</option>`)
+          .join('') || '<option disabled selected>No approved projects found</option>';
+      }
+    });
   }
 
-  projects.forEach(p => {
-    const row = `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.status}</td></tr>`;
-    projectTable.innerHTML += row;
-
-    if (p.status === 'approved') {
-      taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-      weSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+  async function loadApprovedWorkElements(taskId, targetSelectId) {
+    try {
+      console.log('Loading work elements for task:', taskId);
+      
+      // If no task is selected, show default message
+      if (!taskId || taskId === '') {
+        const target = document.getElementById(targetSelectId);
+        if (target) {
+          target.innerHTML = '<option value="">Select task first</option>';
+        }
+        return;
+      }
+      
+      const res = await fetch(`/task-work-elements/${taskId}`);
+      console.log('Response status:', res.status);
+      console.log('Response headers:', res.headers);
+      
+      if (!res.ok) {
+        console.error('Server error:', res.status, res.statusText);
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        return;
+      }
+      
+      const elements = await res.json();
+      console.log('Work elements received:', elements);
+      
+      const target = document.getElementById(targetSelectId);
+      if (!target) {
+        console.error('Target select element not found:', targetSelectId);
+        return;
+      }
+      
+      console.log('Updating dropdown with', elements.length, 'elements');
+      if (elements.length === 0) {
+        target.innerHTML = '<option value="">No work elements found for this task</option>';
+      } else {
+        target.innerHTML = '<option value="">Select work element</option>' + 
+          elements.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      }
+      
+      console.log('Dropdown updated successfully');
+    } catch (error) {
+      console.error('Error loading work elements:', error);
+      const target = document.getElementById(targetSelectId);
+      if (target) {
+        target.innerHTML = '<option value="">Error loading work elements</option>';
+      }
     }
-  });
-
-  // Populate dropdowns for other forms
-  allProjectDropdowns.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.innerHTML = projects
-        .filter(p => p.status === 'approved')
-        .map(p => `<option value="${p.id}">${p.name}</option>`)
-        .join('') || '<option disabled selected>No approved projects found</option>';
-    }
-  });
-}
-
-async function loadApprovedWorkElements(taskId, targetSelectId) {
-  const res = await fetch(`/task-work-elements/${taskId}`);
-  const elements = await res.json();
-  const target = document.getElementById(targetSelectId);
-  target.innerHTML = elements.length
-    ? elements.map(e => `<option value="${e.id}">${e.name}</option>`).join('')
-    : '<option disabled>No work elements</option>';
-}
-
-
-async function loadBudgetForWorkElement(workElementId) {
-  const res = await fetch(`/work-element-budgets/${workElementId}`);
-  const budgets = await res.json();
-
-  if (budgets.length > 0) {
-    // Use the first approved budget
-    const budget = budgets[0];
-    document.getElementById('afeBudgetAmount').value = budget.amount;
-    document.getElementById('afeBudgetId').value = budget.id;
-  } else {
-    document.getElementById('afeBudgetAmount').value = 'No approved budget';
-    document.getElementById('afeBudgetId').value = '';
   }
-}
 
+  async function loadBudgetForWorkElement(workElementId) {
+    const res = await fetch(`/work-element-budgets/${workElementId}`);
+    const budgets = await res.json();
+
+    if (budgets.length > 0) {
+      // Use the first approved budget
+      const budget = budgets[0];
+      document.getElementById('afeBudgetAmount').value = budget.amount;
+      document.getElementById('afeBudgetId').value = budget.id;
+    } else {
+      document.getElementById('afeBudgetAmount').value = 'No approved budget';
+      document.getElementById('afeBudgetId').value = '';
+    }
+  }
 
   async function loadApprovedTasks(projectId, targetSelectId) {
-  console.log("Loading tasks for project:", projectId);
+    console.log("Loading tasks for project:", projectId);
 
-  const res = await fetch(`/project-tasks/${projectId}`);
-  const tasks = await res.json();
+    // Clear work element dropdown when loading new tasks
+    const workElementSelect = document.getElementById('budgetWorkElementSelect');
+    if (workElementSelect) {
+      workElementSelect.innerHTML = '<option value="">Select task first</option>';
+    }
 
-  console.log("Received tasks:", tasks); // 👈 check this in console
+    const res = await fetch(`/project-tasks/${projectId}`);
+    const tasks = await res.json();
 
-  const targetSelect = document.getElementById(targetSelectId);
-  if (targetSelect) {
-    targetSelect.innerHTML = '';
+    console.log("Received tasks:", tasks); // 👈 check this in console
 
-    if (tasks.length === 0) {
-      targetSelect.innerHTML = '<option disabled>No tasks found</option>';
-    } else {
-      targetSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    const targetSelect = document.getElementById(targetSelectId);
+    if (targetSelect) {
+      targetSelect.innerHTML = '';
+
+      if (tasks.length === 0) {
+        targetSelect.innerHTML = '<option value="">No tasks found</option>';
+      } else {
+        targetSelect.innerHTML = '<option value="">Select task</option>' + 
+          tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      }
     }
   }
-  }
-
 
   async function loadApprovedBudgets() {
     const res = await fetch('/my-budgets');
@@ -406,26 +444,26 @@ async function loadBudgetForWorkElement(workElementId) {
 
   getUser();
   loadApprovedBudgets();
-async function loadAFEfromTask(taskId) {
-  const res = await fetch(`/afe-from-task/${taskId}`);
-  const afe = await res.json();
-  if (afe && afe.id) {
-    document.getElementById('invoiceAfeId').value = afe.id;
-  } else {
-    alert("⚠️ No approved AFE found for this task. Please ask manager to approve AFE first.");
-    document.getElementById('invoiceAfeId').value = '';
+
+  async function loadAFEfromTask(taskId) {
+    const res = await fetch(`/afe-from-task/${taskId}`);
+    const afe = await res.json();
+    if (afe && afe.id) {
+      document.getElementById('invoiceAfeId').value = afe.id;
+    } else {
+      alert("⚠️ No approved AFE found for this task. Please ask manager to approve AFE first.");
+      document.getElementById('invoiceAfeId').value = '';
+    }
   }
-}
 
-async function loadBudgets(workElementId, targetSelectId) {
-  const res = await fetch(`/work-element-budgets/${workElementId}`);
-  const budgets = await res.json();
-  const target = document.getElementById(targetSelectId);
-  target.innerHTML = budgets.length
-    ? budgets.map(b => `<option value="${b.id}">Budget #${b.id} - $${b.amount}</option>`).join('')
-    : '<option disabled>No approved budgets found</option>';
-}
-
+  async function loadBudgets(workElementId, targetSelectId) {
+    const res = await fetch(`/work-element-budgets/${workElementId}`);
+    const budgets = await res.json();
+    const target = document.getElementById(targetSelectId);
+    target.innerHTML = budgets.length
+      ? budgets.map(b => `<option value="${b.id}">Budget #${b.id} - $${b.amount}</option>`).join('')
+      : '<option disabled>No approved budgets found</option>';
+  }
 
   // ✅ Submit Project
   document.getElementById('projectForm').addEventListener('submit', async (e) => {
@@ -439,6 +477,7 @@ async function loadBudgets(workElementId, targetSelectId) {
     alert(await res.text());
     e.target.reset();
   });
+
   function loadInvoices() {
     fetch('/my-invoices')
       .then(res => res.json())
@@ -469,14 +508,15 @@ async function loadBudgets(workElementId, targetSelectId) {
         });
       });
   }
-document.getElementById('afeQuantity').addEventListener('input', calculateAFEAmount);
-document.getElementById('afeUnitPrice').addEventListener('input', calculateAFEAmount);
 
-function calculateAFEAmount() {
-  const quantity = parseFloat(document.getElementById('afeQuantity').value) || 0;
-  const unitPrice = parseFloat(document.getElementById('afeUnitPrice').value) || 0;
-  document.getElementById('afeCostEstimate').value = (quantity * unitPrice).toFixed(2);
-}
+  document.getElementById('afeQuantity').addEventListener('input', calculateAFEAmount);
+  document.getElementById('afeUnitPrice').addEventListener('input', calculateAFEAmount);
+
+  function calculateAFEAmount() {
+    const quantity = parseFloat(document.getElementById('afeQuantity').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('afeUnitPrice').value) || 0;
+    document.getElementById('afeCostEstimate').value = (quantity * unitPrice).toFixed(2);
+  }
 
   function cancelInvoice(id) {
     fetch('/cancel-invoice', {
@@ -502,79 +542,77 @@ function calculateAFEAmount() {
 
   document.addEventListener('DOMContentLoaded', loadInvoices);
 
+  async function loadProjectDropdowns() {
+    const res = await fetch('/my-projects');
+    const projects = await res.json();
 
+    ['sourceProjectSelect', 'destinationProjectSelect'].forEach(id => {
+      const sel = document.getElementById(id);
+      sel.innerHTML = projects
+        .filter(p => p.status === 'approved')
+        .map(p => `<option value="${p.id}">${p.name}</option>`)
+        .join('') || '<option disabled>No approved projects</option>';
+    });
+  }
 
-async function loadProjectDropdowns() {
-  const res = await fetch('/my-projects');
-  const projects = await res.json();
+  document.getElementById('sourceProjectSelect')?.addEventListener('change', async function () {
+    const res = await fetch(`/project-tasks/${this.value}`);
+    const tasks = await res.json();
+    const taskIds = tasks.map(t => t.id);
 
-  ['sourceProjectSelect', 'destinationProjectSelect'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = projects
-      .filter(p => p.status === 'approved')
-      .map(p => `<option value="${p.id}">${p.name}</option>`)
-      .join('') || '<option disabled>No approved projects</option>';
+    const workElementRes = await Promise.all(
+      taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
+    );
+
+    const workElements = workElementRes.flat();
+
+    const sel = document.getElementById('sourceWorkElementSelect');
+    sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
   });
-}
 
-document.getElementById('sourceProjectSelect')?.addEventListener('change', async function () {
-  const res = await fetch(`/project-tasks/${this.value}`);
-  const tasks = await res.json();
-  const taskIds = tasks.map(t => t.id);
+  document.getElementById('destinationProjectSelect')?.addEventListener('change', async function () {
+    const res = await fetch(`/project-tasks/${this.value}`);
+    const tasks = await res.json();
+    const taskIds = tasks.map(t => t.id);
 
-  const workElementRes = await Promise.all(
-    taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
-  );
+    const workElementRes = await Promise.all(
+      taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
+    );
 
-  const workElements = workElementRes.flat();
+    const workElements = workElementRes.flat();
 
-  const sel = document.getElementById('sourceWorkElementSelect');
-  sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
-});
-
-document.getElementById('destinationProjectSelect')?.addEventListener('change', async function () {
-  const res = await fetch(`/project-tasks/${this.value}`);
-  const tasks = await res.json();
-  const taskIds = tasks.map(t => t.id);
-
-  const workElementRes = await Promise.all(
-    taskIds.map(id => fetch(`/task-work-elements/${id}`).then(r => r.json()))
-  );
-
-  const workElements = workElementRes.flat();
-
-  const sel = document.getElementById('destinationWorkElementSelect');
-  sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
-});
-
-// Generate BCR number
-document.getElementById('bcrAuto').value = 'BCR-' + Date.now();
-
-// Submit form
-document.getElementById('budgetChangeForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const res = await fetch('/submit-budget-change', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(formData).toString()
+    const sel = document.getElementById('destinationWorkElementSelect');
+    sel.innerHTML = workElements.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
   });
-  alert(await res.text());
-  e.target.reset();
+
+  // Generate BCR number
   document.getElementById('bcrAuto').value = 'BCR-' + Date.now();
-});
 
-loadProjectDropdowns();
-
-async function revertInvoice(id) {
-  const res = await fetch('/revert-invoice', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ invoice_id: id })
+  // Submit form
+  document.getElementById('budgetChangeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-budget-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(formData).toString()
+    });
+    alert(await res.text());
+    e.target.reset();
+    document.getElementById('bcrAuto').value = 'BCR-' + Date.now();
   });
-  alert(await res.text());
-  loadMyInvoices();
-}
+
+  loadProjectDropdowns();
+
+  async function revertInvoice(id) {
+    const res = await fetch('/revert-invoice', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ invoice_id: id })
+    });
+    alert(await res.text());
+    loadMyInvoices();
+  }
 
   async function loadBudgetForProjectTask() {
     const projectId = document.getElementById('afeProjectSelect').value;
@@ -622,19 +660,114 @@ async function revertInvoice(id) {
     });
     alert(await res.text());
     e.target.reset();
+    // Auto-update the work element dropdown in the budget section if the same task is selected
+    const budgetTaskSelect = document.getElementById('budgetTaskSelect');
+    if (budgetTaskSelect && budgetTaskSelect.value) {
+      loadApprovedWorkElements(budgetTaskSelect.value, 'budgetWorkElementSelect');
+    }
   });
 
-  // ✅ Submit Budget
-  document.getElementById('budgetForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const res = await fetch('/submit-budget', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(formData).toString()
-    });
-    alert(await res.text());
-    e.target.reset();
+  // Real-time updates for budget form
+  document.addEventListener('DOMContentLoaded', function() {
+    // Budget form real-time updates
+    const budgetProjectSelect = document.getElementById('budgetProjectSelect');
+    const budgetTaskSelect = document.getElementById('budgetTaskSelect');
+    const budgetWorkElementSelect = document.getElementById('budgetWorkElementSelect');
+    
+    if (budgetProjectSelect) {
+      budgetProjectSelect.addEventListener('change', async function() {
+        console.log('Project selected:', this.value);
+        if (this.value) {
+          await loadApprovedTasks(this.value, 'budgetTaskSelect');
+          // Clear dependent dropdowns
+          budgetWorkElementSelect.innerHTML = '<option disabled>Select a task first</option>';
+        } else {
+          budgetTaskSelect.innerHTML = '<option disabled>Select a project first</option>';
+          budgetWorkElementSelect.innerHTML = '<option disabled>Select a task first</option>';
+        }
+      });
+    }
+    
+    if (budgetTaskSelect) {
+      budgetTaskSelect.addEventListener('change', async function() {
+        console.log('Task selected:', this.value);
+        if (this.value) {
+          await loadApprovedWorkElements(this.value, 'budgetWorkElementSelect');
+        } else {
+          budgetWorkElementSelect.innerHTML = '<option disabled>Select a task first</option>';
+        }
+      });
+    }
+    
+    // Real-time amount validation
+    const amountInput = document.querySelector('input[name="amount"]');
+    if (amountInput) {
+      amountInput.addEventListener('input', function() {
+        const value = parseFloat(this.value);
+        if (isNaN(value) || value <= 0) {
+          this.style.borderColor = 'red';
+          this.title = 'Please enter a valid amount greater than 0';
+        } else {
+          this.style.borderColor = 'green';
+          this.title = 'Valid amount';
+        }
+      });
+    }
+    
+    // Real-time description validation
+    const descriptionInput = document.querySelector('input[name="description"]');
+    if (descriptionInput) {
+      descriptionInput.addEventListener('input', function() {
+        if (this.value.trim().length < 3) {
+          this.style.borderColor = 'orange';
+          this.title = 'Description should be at least 3 characters';
+        } else {
+          this.style.borderColor = 'green';
+          this.title = 'Valid description';
+        }
+      });
+    }
+    
+    // Budget form submission with enhanced feedback
+    const budgetForm = document.getElementById('budgetForm');
+    if (budgetForm) {
+      budgetForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('Budget form submitted'); // Debug log
+        
+        // Show loading state
+        const submitBtn = budgetForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+        
+        try {
+          const formData = new FormData(e.target);
+          const res = await fetch('/submit-budget', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(formData).toString()
+          });
+          
+          const result = await res.text();
+          alert(result);
+          
+          if (res.ok) {
+            e.target.reset();
+            // Reset dropdowns
+            budgetTaskSelect.innerHTML = '<option disabled>Select a project first</option>';
+            budgetWorkElementSelect.innerHTML = '<option disabled>Select a task first</option>';
+          }
+        } catch (error) {
+          console.error('Error submitting budget:', error);
+          alert('Error submitting budget. Please try again.');
+        } finally {
+          // Restore button state
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+    }
   });
 
   // ✅ Submit AFE
@@ -649,6 +782,7 @@ async function revertInvoice(id) {
     alert(await res.text());
     e.target.reset();
   });
+
   // AFE -PROJECT
   document.addEventListener('DOMContentLoaded', () => {
     fetch('/api/approved-projects')
@@ -670,22 +804,20 @@ async function revertInvoice(id) {
       });
   });
 
-
   // ✅ Submit Invoice (multipart/form-data)
-document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+  document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const formData = new FormData(e.target);
-  const res = await fetch('/submit-invoice', {
-    method: 'POST',
-    body: formData
+    const formData = new FormData(e.target);
+    const res = await fetch('/submit-invoice', {
+      method: 'POST',
+      body: formData
+    });
+
+    const msg = await res.text();
+    alert(msg);
+    e.target.reset();
   });
-
-  const msg = await res.text();
-  alert(msg);
-  e.target.reset();
-});
-
 
   // ✅ Submit Production
   document.getElementById('productionForm')?.addEventListener('submit', async (e) => {
@@ -699,6 +831,48 @@ document.getElementById('invoiceForm')?.addEventListener('submit', async (e) => 
     alert(await res.text());
     e.target.reset();
   });
+
+  // Initialize dropdowns when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize budget form dropdowns
+    const budgetTaskSelect = document.getElementById('budgetTaskSelect');
+    const budgetWorkElementSelect = document.getElementById('budgetWorkElementSelect');
+    
+    if (budgetTaskSelect) {
+      budgetTaskSelect.innerHTML = '<option value="">Select project first</option>';
+    }
+    
+    if (budgetWorkElementSelect) {
+      budgetWorkElementSelect.innerHTML = '<option value="">Select task first</option>';
+    }
+    
+    // Load projects into dropdowns
+    loadApprovedProjects();
+  });
+
+  async function loadApprovedProjects() {
+    try {
+      const res = await fetch('/my-projects');
+      const projects = await res.json();
+      
+      const approvedProjects = projects.filter(p => p.status === 'approved');
+      
+      // Update all project dropdowns
+      const projectSelects = ['budgetProjectSelect', 'weProjectSelect', 'sourceProjectSelect', 'destinationProjectSelect', 'afeProjectSelect', 'invoiceProjectSelect', 'productionProjectSelect'];
+      
+      projectSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+          select.innerHTML = '<option value="">Select project</option>' + 
+            approvedProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+      });
+      
+      console.log('Projects loaded:', approvedProjects);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  }
 </script>
 
 </body>

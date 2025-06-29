@@ -1,0 +1,24 @@
+dn: ou=users,dc=testorg,dc=com
+objectClass: organizationalUnit
+ou: users
+
+dn: uid=adminuser,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+uid: adminuser
+sn: User
+cn: Admin User
+userPassword: admin123
+
+dn: uid=manager1,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+uid: manager1
+sn: Manager
+cn: Manager One
+userPassword: password123
+
+dn: uid=user1,ou=users,dc=testorg,dc=com
+objectClass: inetOrgPerson
+uid: user1
+sn: User
+cn: User One
+userPassword: password123
