@@ -801,7 +801,7 @@ app.get('/admin/approved-invoices', isAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
+        i.id, i.invoice_title, i.amount, i.file_path, i.invoice_number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
         a.title AS afe_title,
         p.name AS project_name
       FROM invoices i
@@ -890,7 +890,7 @@ app.get('/pending-invoices', isManager, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        i.id, i.title, i.amount, i.file_path, i.number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
+        i.id, i.invoice_title, i.amount, i.file_path, i.invoice_number, i.vendor, i.status, i.submitted_by, i.approved_by, i.approved_at,
         a.title AS afe_title
       FROM invoices i
       JOIN afes a ON i.afe_id = a.id
