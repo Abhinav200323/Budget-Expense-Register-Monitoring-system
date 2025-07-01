@@ -8,6 +8,6 @@ npm install express express-session mysql2 body-parser ldapauth-fork multer ldap
 mysql -u root -p < ber.sql
 
 # 4. Create LDAP using docker
-make changes in server.js file in LdapAuth and mysql.createPool change information about ldap and sql there for better functionality
+make changes in .env file in LdapAuth and mysql.createPool change information about ldap and sql there for better functionality
 # 5. Run the server
 node server.js
